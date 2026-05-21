@@ -458,6 +458,16 @@ impl Database {
         Ok(stats.filter_map(|s| s.ok()).collect())
     }
 
+    pub fn get_project_total_minutes(&self, project_id: &str) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        let minutes: i64 = conn.query_row(
+            "SELECT COALESCE(SUM(minutes), 0) FROM sessions WHERE project_id = ? AND minutes IS NOT NULL",
+            [project_id],
+            |row| row.get(0),
+        )?;
+        Ok(minutes)
+    }
+
     pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
         let conn = self.conn.lock().unwrap();
         let result = conn.query_row(

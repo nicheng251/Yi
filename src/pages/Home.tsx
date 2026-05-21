@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { format } from "date-fns";
-import { zhCN } from "date-fns/locale";
 import { useTimerStore } from "../store/timer";
 import { useProjectStore } from "../store/projects";
 
@@ -14,6 +12,7 @@ interface Project {
   is_archived: boolean;
   sort_order: string;
   tags: string[];
+  total_minutes?: number;
 }
 
 interface Session {
@@ -46,7 +45,16 @@ export default function Home() {
     try {
       const res = (await invoke("get_projects")) as CommandResponse<Project[]>;
       if (res.success && res.data) {
-        setProjects(res.data);
+        const projectsWithTotal = await Promise.all(
+          res.data.map(async (p) => {
+            const minutesRes = (await invoke("get_project_total_minutes", { projectId: p.id })) as CommandResponse<number>;
+            return {
+              ...p,
+              total_minutes: minutesRes.success ? minutesRes.data ?? 0 : 0,
+            };
+          })
+        );
+        setProjects(projectsWithTotal);
       }
     } catch (e) {
       console.error("Failed to load projects:", e);
@@ -134,10 +142,16 @@ export default function Home() {
     }
   }
 
+  function formatTotalMinutes(minutes: number): string {
+    if (minutes === 0) return "0 分钟";
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours === 0) return `${mins} 分钟`;
+    if (mins === 0) return `${hours} 小时`;
+    return `${hours} 小时 ${mins} 分钟`;
+  }
+
   const sortedProjects = sortProjects(projects, sortOrder);
-  const activeProject = activeSession
-    ? projects.find((p) => p.id === activeSession.project_id)
-    : null;
 
   return (
     <div style={{ padding: 24, height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
@@ -240,15 +254,16 @@ export default function Home() {
                   <div>
                     <div style={{ fontWeight: 500, fontSize: 16 }}>{project.name}</div>
                     <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>
-                      创建于 {format(project.created_at * 1000, "yyyy-MM-dd", { locale: zhCN })}
+                      {isRunning ? (
+                        <span style={{ color: "var(--accent)" }}>
+                          本次 <CurrentTimer startTime={activeSession.started_at} /> · 总计 {formatTotalMinutes(project.total_minutes || 0)}
+                        </span>
+                      ) : (
+                        <span>总计 {formatTotalMinutes(project.total_minutes || 0)}</span>
+                      )}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    {isRunning && (
-                      <span style={{ fontSize: 14, color: "var(--accent)" }}>
-                        <TimerDisplay startTime={activeSession.started_at} />
-                      </span>
-                    )}
                     {isRunning ? (
                       <IconButton onClick={handleStopTimer} color="#dc2626" icon="stop" />
                     ) : (
@@ -273,27 +288,24 @@ export default function Home() {
           </div>
         )}
       </div>
-
-      {activeProject && (
-        <div
-          style={{
-            padding: 16,
-            backgroundColor: "var(--accent)",
-            color: "white",
-            borderRadius: 8,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <span>
-            正在专注: <strong>{activeProject.name}</strong>
-          </span>
-          <IconButton onClick={handleStopTimer} color="#fff" icon="stop" />
-        </div>
-      )}
     </div>
   );
+}
+
+function CurrentTimer({ startTime }: { startTime: number }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const update = () => {
+      const diff = Math.floor((Date.now() - startTime * 1000) / 60000);
+      setElapsed(diff);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  return <span>{elapsed} 分钟</span>;
 }
 
 function IconButton({ onClick, color, icon }: { onClick: () => void; color: string; icon: "play" | "stop" }) {
@@ -324,20 +336,4 @@ function IconButton({ onClick, color, icon }: { onClick: () => void; color: stri
       )}
     </button>
   );
-}
-
-function TimerDisplay({ startTime }: { startTime: number }) {
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    const update = () => {
-      const diff = Math.floor((Date.now() - startTime * 1000) / 60000);
-      setElapsed(diff);
-    };
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [startTime]);
-
-  return <span>{elapsed} 分钟</span>;
 }
