@@ -29,8 +29,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["msi"],
     "icon": [
+      "icons/icon.ico",
       "icons/icon.png"
     ],
     "shortDescription": "Focus Productivity Tool",
