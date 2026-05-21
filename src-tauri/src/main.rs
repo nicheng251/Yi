@@ -1,0 +1,340 @@
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
+
+mod db;
+
+use db::Database;
+use std::sync::Mutex;
+use tauri::State;
+use tracing::{info, error};
+use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter};
+use tracing_appender::rolling::{RollingFileAppender, Rotation};
+use serde::{Serialize, Deserialize};
+use std::path::PathBuf;
+
+struct AppState {
+    db: Mutex<Option<Database>>,
+    app_data_dir: PathBuf,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct CommandResponse<T> {
+    success: bool,
+    data: Option<T>,
+    error: Option<String>,
+}
+
+impl<T> CommandResponse<T> {
+    fn ok(data: T) -> Self {
+        CommandResponse {
+            success: true,
+            data: Some(data),
+            error: None,
+        }
+    }
+
+    fn err(msg: &str) -> Self {
+        CommandResponse {
+            success: false,
+            data: None,
+            error: Some(msg.to_string()),
+        }
+    }
+}
+
+#[tauri::command]
+fn get_projects(state: State<AppState>) -> Result<CommandResponse<Vec<db::Project>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.get_projects(false) {
+        Ok(projects) => Ok(CommandResponse::ok(projects)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn get_archived_projects(state: State<AppState>) -> Result<CommandResponse<Vec<db::Project>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.get_archived_projects() {
+        Ok(projects) => Ok(CommandResponse::ok(projects)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn create_project(name: String, category_id: Option<String>, tags: Vec<String>, state: State<AppState>) -> Result<CommandResponse<db::Project>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.create_project(&name, category_id.as_deref(), tags) {
+        Ok(project) => Ok(CommandResponse::ok(project)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn update_project(id: String, name: String, category_id: Option<String>, tags: Vec<String>, state: State<AppState>) -> Result<CommandResponse<()>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.update_project(&id, &name, category_id.as_deref(), tags) {
+        Ok(_) => Ok(CommandResponse::ok(())),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn archive_project(id: String, state: State<AppState>) -> Result<CommandResponse<()>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.archive_project(&id) {
+        Ok(_) => Ok(CommandResponse::ok(())),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn unarchive_project(id: String, state: State<AppState>) -> Result<CommandResponse<()>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.unarchive_project(&id) {
+        Ok(_) => Ok(CommandResponse::ok(())),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn delete_project(id: String, state: State<AppState>) -> Result<CommandResponse<()>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.delete_project(&id) {
+        Ok(_) => Ok(CommandResponse::ok(())),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn get_categories(state: State<AppState>) -> Result<CommandResponse<Vec<db::Category>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.get_categories() {
+        Ok(categories) => Ok(CommandResponse::ok(categories)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn create_category(name: String, state: State<AppState>) -> Result<CommandResponse<db::Category>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.create_category(&name) {
+        Ok(category) => Ok(CommandResponse::ok(category)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn start_session(project_id: String, state: State<AppState>) -> Result<CommandResponse<db::Session>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+
+    if let Ok(Some(active)) = db.get_active_session() {
+        let _ = db.end_session(&active.id);
+    }
+
+    match db.create_session(&project_id) {
+        Ok(session) => Ok(CommandResponse::ok(session)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn end_session(session_id: String, state: State<AppState>) -> Result<CommandResponse<Option<i64>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.end_session(&session_id) {
+        Ok(minutes) => Ok(CommandResponse::ok(minutes)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn get_active_session(state: State<AppState>) -> Result<CommandResponse<Option<db::Session>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.get_active_session() {
+        Ok(session) => Ok(CommandResponse::ok(session)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn get_daily_record(date: String, state: State<AppState>) -> Result<CommandResponse<Option<db::DailyRecord>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.get_daily_record(&date) {
+        Ok(record) => Ok(CommandResponse::ok(record)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn save_daily_record(date: String, content: String, state: State<AppState>) -> Result<CommandResponse<db::DailyRecord>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.create_or_update_daily_record(&date, &content) {
+        Ok(record) => Ok(CommandResponse::ok(record)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn search_records(query: String, state: State<AppState>) -> Result<CommandResponse<Vec<db::DailyRecord>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.search_daily_records(&query) {
+        Ok(records) => Ok(CommandResponse::ok(records)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn get_statistics(start_date: String, end_date: String, state: State<AppState>) -> Result<CommandResponse<Vec<db::ProjectStat>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.get_statistics(&start_date, &end_date) {
+        Ok(stats) => Ok(CommandResponse::ok(stats)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn get_setting(key: String, state: State<AppState>) -> Result<CommandResponse<Option<String>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.get_setting(&key) {
+        Ok(value) => Ok(CommandResponse::ok(value)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn set_setting(key: String, value: String, state: State<AppState>) -> Result<CommandResponse<()>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.set_setting(&key, &value) {
+        Ok(_) => Ok(CommandResponse::ok(())),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn export_data(state: State<AppState>) -> Result<CommandResponse<String>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+
+    let projects = db.get_projects(true).map_err(|e| e.to_string())?;
+    let archived = db.get_archived_projects().map_err(|e| e.to_string())?;
+    let categories = db.get_categories().map_err(|e| e.to_string())?;
+    let all_projects: Vec<_> = projects.into_iter().chain(archived.into_iter()).collect();
+
+    let export = serde_json::json!({
+        "projects": all_projects,
+        "categories": categories,
+        "exported_at": chrono::Utc::now().to_rfc3339(),
+    });
+
+    serde_json::to_string_pretty(&export).map_err(|e| e.to_string()).map(|s| CommandResponse::ok(s))
+}
+
+#[tauri::command]
+fn get_app_data_dir(state: State<AppState>) -> String {
+    state.app_data_dir.to_string_lossy().to_string()
+}
+
+fn setup_logging(app_data_dir: &PathBuf) {
+    let logs_dir = app_data_dir.join("logs");
+    std::fs::create_dir_all(&logs_dir).ok();
+
+    let file_appender = RollingFileAppender::new(Rotation::DAILY, logs_dir, "yi.log");
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+
+    let subscriber = tracing_subscriber::registry()
+        .with(filter)
+        .with(fmt::layer().with_writer(non_blocking).with_ansi(false).with_target(false));
+
+    tracing::subscriber::set_global_default(subscriber).ok();
+}
+
+fn main() {
+    let app_data_dir = dirs::data_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("yi");
+
+    std::fs::create_dir_all(&app_data_dir).ok();
+
+    setup_logging(&app_data_dir);
+    info!("Yi starting up...");
+    info!("App data directory: {:?}", app_data_dir);
+
+    std::panic::set_hook(Box::new(|panic_info| {
+        error!("PANIC: {}", panic_info);
+    }));
+
+    let db = match Database::new(app_data_dir.clone()) {
+        Ok(db) => {
+            info!("Database initialized successfully");
+            db
+        }
+        Err(e) => {
+            error!("Failed to initialize database: {}", e);
+            panic!("Database initialization failed: {}", e);
+        }
+    };
+
+    let app_state = AppState {
+        db: Mutex::new(Some(db)),
+        app_data_dir: app_data_dir.clone(),
+    };
+
+    let result = tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
+        .manage(app_state)
+        .invoke_handler(tauri::generate_handler![
+            get_projects,
+            get_archived_projects,
+            create_project,
+            update_project,
+            archive_project,
+            unarchive_project,
+            delete_project,
+            get_categories,
+            create_category,
+            start_session,
+            end_session,
+            get_active_session,
+            get_daily_record,
+            save_daily_record,
+            search_records,
+            get_statistics,
+            get_setting,
+            set_setting,
+            export_data,
+            get_app_data_dir,
+        ])
+        .run(tauri::generate_context!());
+
+    if let Err(e) = result {
+        error!("Failed to run Tauri application: {}", e);
+        std::process::exit(1);
+    }
+}
