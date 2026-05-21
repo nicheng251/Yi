@@ -11,6 +11,10 @@
   },
   "app": {
     "withGlobalTauri": true,
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": false
+    },
     "windows": [
       {
         "title": "Yi - 专注生产力工具",

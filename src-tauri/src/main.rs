@@ -7,7 +7,11 @@ mod db;
 
 use db::Database;
 use std::sync::Mutex;
-use tauri::State;
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{TrayIcon, TrayIconBuilder},
+    AppHandle, Manager, State,
+};
 use tracing::{info, error};
 use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
@@ -17,6 +21,7 @@ use std::path::PathBuf;
 struct AppState {
     db: Mutex<Option<Database>>,
     app_data_dir: PathBuf,
+    timer_active: Mutex<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -42,6 +47,45 @@ impl<T> CommandResponse<T> {
             error: Some(msg.to_string()),
         }
     }
+}
+
+fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    let show_item = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+
+    let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))?;
+
+    let _tray = TrayIconBuilder::new()
+        .icon(icon)
+        .menu(&menu)
+        .tooltip("Yi - 专注生产力工具")
+        .on_menu_event(|app, event| {
+            match event.id.as_ref() {
+                "show" => {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                }
+                "quit" => {
+                    app.exit(0);
+                }
+                _ => {}
+            }
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let tauri::tray::TrayIconEvent::Click { button: tauri::tray::MouseButton::Left, .. } = event {
+                if let Some(window) = tray.app_handle().get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+        })
+        .build(app)?;
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -308,6 +352,7 @@ fn main() {
     let app_state = AppState {
         db: Mutex::new(Some(db)),
         app_data_dir: app_data_dir.clone(),
+        timer_active: Mutex::new(false),
     };
 
     let result = tauri::Builder::default()
@@ -319,6 +364,18 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
+        .setup(|app| {
+            setup_tray(app.handle())?;
+            info!("System tray initialized");
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+                info!("Window hidden to tray");
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             get_projects,
             get_archived_projects,
