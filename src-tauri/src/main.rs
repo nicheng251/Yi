@@ -9,7 +9,7 @@ use db::Database;
 use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem},
-    tray::{TrayIcon, TrayIconBuilder},
+    tray::TrayIconBuilder,
     AppHandle, Manager, State,
 };
 use tracing::{info, error};
@@ -21,7 +21,6 @@ use std::path::PathBuf;
 struct AppState {
     db: Mutex<Option<Database>>,
     app_data_dir: PathBuf,
-    timer_active: Mutex<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -352,7 +351,6 @@ fn main() {
     let app_state = AppState {
         db: Mutex::new(Some(db)),
         app_data_dir: app_data_dir.clone(),
-        timer_active: Mutex::new(false),
     };
 
     let result = tauri::Builder::default()
