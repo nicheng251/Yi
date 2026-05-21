@@ -250,31 +250,9 @@ export default function Home() {
                       </span>
                     )}
                     {isRunning ? (
-                      <button
-                        onClick={handleStopTimer}
-                        style={{
-                          padding: "8px 16px",
-                          backgroundColor: "var(--danger)",
-                          color: "white",
-                          borderRadius: 6,
-                          fontWeight: 500,
-                        }}
-                      >
-                        停止
-                      </button>
+                      <IconButton onClick={handleStopTimer} color="#dc2626" icon="stop" />
                     ) : (
-                      <button
-                        onClick={() => handleStartTimer(project.id)}
-                        style={{
-                          padding: "8px 16px",
-                          backgroundColor: "var(--accent)",
-                          color: "white",
-                          borderRadius: 6,
-                          fontWeight: 500,
-                        }}
-                      >
-                        开始
-                      </button>
+                      <IconButton onClick={() => handleStartTimer(project.id)} color="#22c55e" icon="play" />
                     )}
                     <button
                       onClick={() => handleArchive(project.id)}
@@ -311,21 +289,40 @@ export default function Home() {
           <span>
             正在专注: <strong>{activeProject.name}</strong>
           </span>
-          <button
-            onClick={handleStopTimer}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "rgba(255,255,255,0.2)",
-              color: "white",
-              borderRadius: 6,
-              fontWeight: 500,
-            }}
-          >
-            停止
-          </button>
+          <IconButton onClick={handleStopTimer} color="#fff" icon="stop" />
         </div>
       )}
     </div>
+  );
+}
+
+function IconButton({ onClick, color, icon }: { onClick: () => void; color: string; icon: "play" | "stop" }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        backgroundColor: color,
+        border: "none",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        padding: 0,
+      }}
+    >
+      {icon === "play" ? (
+        <svg width="16" height="18" viewBox="0 0 16 18" fill="white">
+          <path d="M0 0L16 9L0 18V0Z" />
+        </svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="white">
+          <rect x="0" y="0" width="14" height="14" />
+        </svg>
+      )}
+    </button>
   );
 }
 
