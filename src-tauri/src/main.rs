@@ -118,6 +118,16 @@ fn create_project(name: String, category_id: Option<String>, tags: Vec<String>, 
 }
 
 #[tauri::command]
+fn reorder_projects(project_ids: Vec<String>, state: State<AppState>) -> Result<CommandResponse<()>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.reorder_projects(&project_ids) {
+        Ok(_) => Ok(CommandResponse::ok(())),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
 fn update_project(id: String, name: String, category_id: Option<String>, tags: Vec<String>, state: State<AppState>) -> Result<CommandResponse<()>, String> {
     let db_guard = state.db.lock().map_err(|e| e.to_string())?;
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
@@ -378,6 +388,7 @@ fn main() {
             get_projects,
             get_archived_projects,
             create_project,
+            reorder_projects,
             update_project,
             archive_project,
             unarchive_project,
