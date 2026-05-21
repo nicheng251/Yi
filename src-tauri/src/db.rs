@@ -34,7 +34,8 @@ impl Database {
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL,
                 is_archived INTEGER DEFAULT 0,
-                sort_order TEXT DEFAULT 'created'
+                sort_order TEXT DEFAULT 'created',
+                display_order INTEGER DEFAULT 0
             );
 
             CREATE TABLE IF NOT EXISTS tags (
@@ -99,9 +100,9 @@ impl Database {
     pub fn get_projects(&self, include_archived: bool) -> Result<Vec<Project>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = if include_archived {
-            conn.prepare("SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order FROM projects ORDER BY created_at DESC")?
+            conn.prepare("SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects ORDER BY display_order ASC, created_at DESC")?
         } else {
-            conn.prepare("SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order FROM projects WHERE is_archived = 0 ORDER BY created_at DESC")?
+            conn.prepare("SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects WHERE is_archived = 0 ORDER BY display_order ASC, created_at DESC")?
         };
 
         let project_iter = stmt.query_map([], |row| {
@@ -114,6 +115,7 @@ impl Database {
                 is_archived: row.get::<_, i32>(5)? == 1,
                 sort_order: row.get(6)?,
                 tags: Vec::new(),
+                display_order: row.get(7)?,
             })
         })?;
 
@@ -132,7 +134,7 @@ impl Database {
     pub fn get_archived_projects(&self) -> Result<Vec<Project>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order FROM projects WHERE is_archived = 1 ORDER BY updated_at DESC"
+            "SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects WHERE is_archived = 1 ORDER BY display_order ASC, updated_at DESC"
         )?;
 
         let project_iter = stmt.query_map([], |row| {
@@ -145,6 +147,7 @@ impl Database {
                 is_archived: true,
                 sort_order: row.get(6)?,
                 tags: Vec::new(),
+                display_order: row.get(7)?,
             })
         })?;
 
@@ -197,6 +200,7 @@ impl Database {
             is_archived: false,
             sort_order: "created".to_string(),
             tags,
+            display_order: 0,
         })
     }
 
@@ -264,6 +268,17 @@ impl Database {
         conn.execute("DELETE FROM project_tags WHERE project_id = ?", [id])?;
         conn.execute("DELETE FROM sessions WHERE project_id = ?", [id])?;
         conn.execute("DELETE FROM projects WHERE id = ?", [id])?;
+        Ok(())
+    }
+
+    pub fn reorder_projects(&self, project_ids: &[String]) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        for (index, id) in project_ids.iter().enumerate() {
+            conn.execute(
+                "UPDATE projects SET display_order = ? WHERE id = ?",
+                params![index as i64, id],
+            )?;
+        }
         Ok(())
     }
 
@@ -503,6 +518,7 @@ pub struct Project {
     pub is_archived: bool,
     pub sort_order: String,
     pub tags: Vec<String>,
+    pub display_order: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

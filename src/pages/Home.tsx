@@ -2,6 +2,23 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTimerStore } from "../store/timer";
 import { useProjectStore } from "../store/projects";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Project {
   id: string;
@@ -12,6 +29,7 @@ interface Project {
   is_archived: boolean;
   sort_order: string;
   tags: string[];
+  display_order: number;
   total_minutes?: number;
 }
 
@@ -27,7 +45,7 @@ interface CommandResponse<T> {
   error: string | null;
 }
 
-type SortOrder = "created" | "updated" | "name";
+type SortOrder = "created" | "updated" | "name" | "custom";
 
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -36,6 +54,17 @@ export default function Home() {
   const [newProjectName, setNewProjectName] = useState("");
   const { activeSession, setActiveSession, clearActiveSession } = useTimerStore();
   const { refreshProjects } = useProjectStore();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     loadProjects();
@@ -62,6 +91,9 @@ export default function Home() {
   }
 
   function sortProjects(projects: Project[], order: SortOrder): Project[] {
+    if (order === "custom") {
+      return [...projects].sort((a, b) => a.display_order - b.display_order);
+    }
     return [...projects].sort((a, b) => {
       if (order === "created") return b.created_at - a.created_at;
       if (order === "updated") return b.updated_at - a.updated_at;
@@ -142,6 +174,28 @@ export default function Home() {
     }
   }
 
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = projects.findIndex((p) => p.id === active.id);
+      const newIndex = projects.findIndex((p) => p.id === over.id);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newProjects = arrayMove(projects, oldIndex, newIndex);
+        setProjects(newProjects);
+        setSortOrder("custom");
+
+        try {
+          const projectIds = newProjects.map((p) => p.id);
+          await invoke("reorder_projects", { projectIds });
+        } catch (e) {
+          console.error("Failed to reorder projects:", e);
+        }
+      }
+    }
+  }
+
   function formatTotalMinutes(minutes: number): string {
     if (minutes === 0) return "0 分钟";
     const hours = Math.floor(minutes / 60);
@@ -172,6 +226,7 @@ export default function Home() {
             <option value="created">创建时间</option>
             <option value="updated">最近活动时间</option>
             <option value="name">名称</option>
+            <option value="custom">自定义</option>
           </select>
           <button
             onClick={() => setShowNewProject(true)}
@@ -236,57 +291,136 @@ export default function Home() {
             暂无项目，点击"新建项目"开始
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {sortedProjects.map((project) => {
-              const isRunning = activeSession?.project_id === project.id;
-              return (
-                <div
-                  key={project.id}
-                  style={{
-                    padding: 16,
-                    backgroundColor: "var(--bg-secondary)",
-                    borderRadius: 8,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 500, fontSize: 16 }}>{project.name}</div>
-                    <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>
-                      {isRunning ? (
-                        <span style={{ color: "var(--accent)" }}>
-                          本次 <CurrentTimer startTime={activeSession.started_at} /> · 总计 {formatTotalMinutes(project.total_minutes || 0)}
-                        </span>
-                      ) : (
-                        <span>总计 {formatTotalMinutes(project.total_minutes || 0)}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    {isRunning ? (
-                      <IconButton onClick={handleStopTimer} color="#dc2626" icon="stop" />
-                    ) : (
-                      <IconButton onClick={() => handleStartTimer(project.id)} color="#22c55e" icon="play" />
-                    )}
-                    <button
-                      onClick={() => handleArchive(project.id)}
-                      style={{ padding: "8px 12px", backgroundColor: "var(--bg-tertiary)", color: "var(--text-secondary)", borderRadius: 6 }}
-                    >
-                      归档
-                    </button>
-                    <button
-                      onClick={() => handleDelete(project.id)}
-                      style={{ padding: "8px 12px", backgroundColor: "var(--bg-tertiary)", color: "var(--danger)", borderRadius: 6 }}
-                    >
-                      删除
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={sortedProjects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {sortedProjects.map((project) => {
+                  const isRunning = activeSession?.project_id === project.id;
+                  return (
+                    <SortableProjectItem
+                      key={project.id}
+                      project={project}
+                      isRunning={isRunning}
+                      activeSession={activeSession}
+                      onStartTimer={handleStartTimer}
+                      onStopTimer={handleStopTimer}
+                      onArchive={handleArchive}
+                      onDelete={handleDelete}
+                      formatTotalMinutes={formatTotalMinutes}
+                    />
+                  );
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
+      </div>
+    </div>
+  );
+}
+
+interface SortableProjectItemProps {
+  project: Project;
+  isRunning: boolean;
+  activeSession: Session | null;
+  onStartTimer: (id: string) => void;
+  onStopTimer: () => void;
+  onArchive: (id: string) => void;
+  onDelete: (id: string) => void;
+  formatTotalMinutes: (minutes: number) => string;
+}
+
+function SortableProjectItem({
+  project,
+  isRunning,
+  activeSession,
+  onStartTimer,
+  onStopTimer,
+  onArchive,
+  onDelete,
+  formatTotalMinutes,
+}: SortableProjectItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: project.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        ...style,
+        padding: 16,
+        backgroundColor: "var(--bg-secondary)",
+        borderRadius: 8,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          {...attributes}
+          {...listeners}
+          style={{
+            cursor: "grab",
+            padding: 4,
+            display: "flex",
+            alignItems: "center",
+            color: "var(--text-secondary)",
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="2" y="3" width="12" height="2" rx="1" />
+            <rect x="2" y="7" width="12" height="2" rx="1" />
+            <rect x="2" y="11" width="12" height="2" rx="1" />
+          </svg>
+        </div>
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 16 }}>{project.name}</div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>
+            {isRunning ? (
+              <span style={{ color: "var(--accent)" }}>
+                本次 <CurrentTimer startTime={activeSession!.started_at} /> · 总计 {formatTotalMinutes(project.total_minutes || 0)}
+              </span>
+            ) : (
+              <span>总计 {formatTotalMinutes(project.total_minutes || 0)}</span>
+            )}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        {isRunning ? (
+          <IconButton onClick={onStopTimer} color="#dc2626" icon="stop" />
+        ) : (
+          <IconButton onClick={() => onStartTimer(project.id)} color="#22c55e" icon="play" />
+        )}
+        <button
+          onClick={() => onArchive(project.id)}
+          style={{ padding: "8px 12px", backgroundColor: "var(--bg-tertiary)", color: "var(--text-secondary)", borderRadius: 6 }}
+        >
+          归档
+        </button>
+        <button
+          onClick={() => onDelete(project.id)}
+          style={{ padding: "8px 12px", backgroundColor: "var(--bg-tertiary)", color: "var(--danger)", borderRadius: 6 }}
+        >
+          删除
+        </button>
       </div>
     </div>
   );
