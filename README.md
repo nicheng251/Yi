@@ -1,61 +1,70 @@
 # Yi - Focus Productivity Tool
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)
+<p align="center">
+  <img src="https://img.shields.io/badge/version-0.1.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="License">
+</p>
 
-Yi is a desktop productivity application designed for long-term focus tracking. It helps you manage projects with dedicated timers and record daily achievements in a timeline format.
+<p align="center">
+  <strong>Yi</strong> is a desktop productivity application designed for long-term focus tracking.
+  Manage projects with dedicated timers and record your daily achievements in a timeline format.
+</p>
 
-## Features
+<p align="center">
+  <img src="screenshot.png" alt="Yi Screenshot" width="800">
+</p>
+
+---
+
+## ✨ Features
 
 ### 🕐 Timer Tracking
 - Multiple projects with independent timers
-- One-tap start/stop
-- Session history logging
+- One-tap start/stop from project list
+- Session history automatically logged
 - Minimum tracking unit: 1 minute
 
 ### 📅 Daily Records
-- Calendar-based view
-- Write achievements for any past date
+- Calendar-based view for browsing achievements
+- Write and edit achievements for any past date
 - Full-text search across all records
 
 ### 📊 Statistics
-- View focus time by day/week/month/year
+- View focus time by day, week, month, or year
 - Project-wise time distribution
-- Compare with previous period
+- Period-over-period comparison
 
 ### 📁 Project Management
-- Create/archive/delete projects
-- Sort by creation time, last activity, or name
+- Create, archive, and delete projects
+- Sort projects by creation time, last activity, or name
 - Archive management with restore capability
+- One-click project switching with automatic timer transfer
 
 ### ⚙️ Settings
-- Dark/Light theme
+- Dark/Light theme toggle
 - Auto-start on system boot
-- Data export (JSON)
-- Automatic backup on first launch
+- Export all data as JSON
+- Automatic backup on first launch (keeps last 7 days)
 
-## Tech Stack
+---
 
-- **Framework**: [Tauri 2.x](https://v2.tauri.app/)
-- **Frontend**: React + TypeScript + Vite
-- **Database**: SQLite (bundled)
-- **State Management**: Zustand
-- **Styling**: CSS Variables (no external UI library)
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- Rust 1.70+
-- npm or pnpm
+| Requirement | Version |
+|-------------|---------|
+| Node.js | 18+ |
+| Rust | 1.70+ |
+| npm | 9+ |
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/yi.git
-cd yi
+git clone https://github.com/nicheng251/Yi.git
+cd Yi
 
 # Install dependencies
 npm install
@@ -64,53 +73,90 @@ npm install
 npm run tauri dev
 ```
 
-### Build for Production
+### Building for Production
 
 ```bash
+# Build release binaries
 npm run tauri build
+
+# Built artifacts are located at:
+# - Linux:    src-tauri/target/release/bundle/
+# - macOS:    src-tauri/target/release/bundle/
+# - Windows:  src-tauri/target/release/bundle/
 ```
 
-The executable will be in `src-tauri/target/release/` (or `target/debug/` for debug build).
+### Running the Built Application
 
-## Project Structure
+```bash
+# Linux
+./src-tauri/target/release/yi
+
+# Or install via package manager
+sudo dpkg -i src-tauri/target/release/bundle/deb/Yi_0.1.0_amd64.deb  # Ubuntu/Debian
+sudo rpm -i src-tauri/target/release/bundle/rpm/Yi-0.1.0-1.x86_64.rpm # Fedora/RHEL
+```
+
+---
+
+## 🏗️ Project Structure
 
 ```
-yi/
-├── src/                    # React frontend
-│   ├── components/         # UI components
-│   ├── pages/              # Page components
-│   │   ├── Home.tsx        # Project list + timer
-│   │   ├── Results.tsx     # Daily records + calendar
-│   │   ├── Archive.tsx     # Archived projects
-│   │   ├── Statistics.tsx  # Focus statistics
-│   │   └── Settings.tsx    # App settings
-│   ├── store/              # Zustand stores
-│   └── styles/             # Global styles
-├── src-tauri/              # Rust backend
+Yi/
+├── src/                          # React frontend (TypeScript)
+│   ├── components/               # Reusable UI components
+│   ├── pages/                    # Page components
+│   │   ├── Home.tsx              #   Project list + timer
+│   │   ├── Results.tsx           #   Daily records + calendar
+│   │   ├── Archive.tsx           #   Archived projects
+│   │   ├── Statistics.tsx        #   Focus statistics
+│   │   └── Settings.tsx          #   App settings
+│   ├── store/                    # Zustand state management
+│   └── styles/                   # Global CSS
+├── src-tauri/                    # Rust backend
 │   ├── src/
-│   │   ├── main.rs          # Main entry + commands
-│   │   └── db.rs            # Database operations
+│   │   ├── main.rs               #   Entry point + Tauri commands
+│   │   └── db.rs                 #   SQLite database operations
+│   ├── icons/                    # App icons
+│   ├── capabilities/             # Tauri permission config
 │   ├── Cargo.toml
 │   └── tauri.conf.json
-├── SPEC.md                 # Design specification
+├── SPEC.md                       # Detailed design specification
 └── package.json
 ```
 
-## Data Storage
+---
 
-- **Database**: `~/.local/share/yi/yi.db` (Linux), `%APPDATA%/yi/yi.db` (Windows)
-- **Attachments**: `~/.local/share/yi/attachments/`
-- **Logs**: `~/.local/share/yi/logs/`
-- **Backups**: `~/.local/share/yi/backups/` (keeps last 7 days)
+## 📁 Data Storage
 
-## Keyboard Shortcuts
+All user data is stored locally. No cloud sync required.
 
-Currently not implemented. Keyboard shortcuts will be added in future versions.
+| Data Type | Location (Linux) | Location (Windows) |
+|-----------|------------------|-------------------|
+| Database | `~/.local/share/yi/yi.db` | `%APPDATA%/yi/yi.db` |
+| Attachments | `~/.local/share/yi/attachments/` | `%APPDATA%/yi/attachments/` |
+| Logs | `~/.local/share/yi/logs/` | `%APPDATA%/yi/logs/` |
+| Backups | `~/.local/share/yi/backups/` | `%APPDATA%/yi/backups/` |
 
-## Contributing
+---
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## 🛠️ Tech Stack
 
-## License
+| Layer | Technology |
+|-------|------------|
+| Framework | [Tauri 2.x](https://v2.tauri.app/) |
+| Frontend | React 18 + TypeScript + Vite |
+| Database | SQLite (bundled via rusqlite) |
+| State | [Zustand](https://zustand-demo.pmnd.rs/) |
+| Styling | CSS Variables (no external UI library) |
 
-This project is MIT licensed.
+---
+
+## 📝 License
+
+This project is [MIT](LICENSE) licensed.
+
+---
+
+<p align="center">
+  Made with ❤️ using Tauri
+</p>
