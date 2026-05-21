@@ -180,9 +180,17 @@ impl Database {
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().timestamp();
 
+        let max_order: i64 = conn.query_row(
+            "SELECT COALESCE(MAX(display_order), -1) FROM projects WHERE is_archived = 0",
+            [],
+            |row| row.get(0),
+        )?;
+
+        let new_order = max_order + 1;
+
         conn.execute(
-            "INSERT INTO projects (id, name, category_id, created_at, updated_at, is_archived, sort_order) VALUES (?, ?, ?, ?, ?, 0, 'created')",
-            params![id, name, category_id, now, now],
+            "INSERT INTO projects (id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order) VALUES (?, ?, ?, ?, ?, 0, 'created', ?)",
+            params![id, name, category_id, now, now, new_order],
         )?;
 
         drop(conn);
@@ -200,7 +208,7 @@ impl Database {
             is_archived: false,
             sort_order: "created".to_string(),
             tags,
-            display_order: 0,
+            display_order: new_order,
         })
     }
 
@@ -256,9 +264,18 @@ impl Database {
     pub fn unarchive_project(&self, id: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         let now = chrono::Utc::now().timestamp();
+
+        let max_order: i64 = conn.query_row(
+            "SELECT COALESCE(MAX(display_order), -1) FROM projects WHERE is_archived = 0",
+            [],
+            |row| row.get(0),
+        )?;
+
+        let new_order = max_order + 1;
+
         conn.execute(
-            "UPDATE projects SET is_archived = 0, updated_at = ? WHERE id = ?",
-            params![now, id],
+            "UPDATE projects SET is_archived = 0, updated_at = ?, display_order = ? WHERE id = ?",
+            params![now, new_order, id],
         )?;
         Ok(())
     }
