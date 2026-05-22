@@ -4,9 +4,11 @@ import { useSettingsStore } from "../store/settings";
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { save } from "@tauri-apps/plugin-dialog";
 import { CommandResponse } from "../types";
+import { useToast } from "../components/Toast";
 
 export default function Settings() {
   const { theme, setTheme, autostart, setAutostart } = useSettingsStore();
+  const { showToast } = useToast();
 
   useEffect(() => {
     checkAutostart();
@@ -39,11 +41,11 @@ export default function Settings() {
     try {
       const res = (await invoke("export_data")) as CommandResponse<string>;
       if (!res.success) {
-        alert("导出失败: " + (res.error || "未知错误"));
+        showToast("导出失败: " + (res.error || "未知错误"), "error");
         return;
       }
       if (!res.data) {
-        alert("导出失败: 无数据");
+        showToast("导出失败: 无数据", "error");
         return;
       }
       const filePath = await save({
@@ -54,15 +56,15 @@ export default function Settings() {
         try {
           const { writeTextFile } = await import("@tauri-apps/plugin-fs");
           await writeTextFile(filePath, res.data);
-          alert("导出成功");
+          showToast("导出成功", "success");
         } catch (writeErr) {
           console.error("Failed to write file:", writeErr);
-          alert("写入文件失败: " + writeErr);
+          showToast("写入文件失败: " + writeErr, "error");
         }
       }
     } catch (e) {
       console.error("Failed to export:", e);
-      alert("导出失败: " + e);
+      showToast("导出失败: " + e, "error");
     }
   }
 
