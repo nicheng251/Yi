@@ -20,7 +20,7 @@ interface CommandResponse<T> {
 export default function Results() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [records, setRecords] = useState<Map<string, DailyRecord>>(new Map());
-  const [viewMode, setViewMode] = useState<'month' | 'day'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'day'>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [editingContent, setEditingContent] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -152,17 +152,6 @@ export default function Results() {
           </button>
           <div style={{ width: 1, height: 24, backgroundColor: "var(--border)", margin: "0 8px" }} />
           <button
-            onClick={() => setViewMode('month')}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: viewMode === 'month' ? "var(--accent)" : "var(--bg-secondary)",
-              color: viewMode === 'month' ? "white" : "var(--text-primary)",
-              borderRadius: 6,
-            }}
-          >
-            月视图
-          </button>
-          <button
             onClick={() => setViewMode('day')}
             style={{
               padding: "8px 16px",
@@ -172,6 +161,17 @@ export default function Results() {
             }}
           >
             日视图
+          </button>
+          <button
+            onClick={() => setViewMode('month')}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: viewMode === 'month' ? "var(--accent)" : "var(--bg-secondary)",
+              color: viewMode === 'month' ? "white" : "var(--text-primary)",
+              borderRadius: 6,
+            }}
+          >
+            月视图
           </button>
         </div>
       </div>
