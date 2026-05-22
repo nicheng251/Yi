@@ -2,20 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, getDaysInMonth, subDays, addDays, isSameDay } from "date-fns";
 import { zhCN } from "date-fns/locale";
-
-interface DailyRecord {
-  id: string;
-  date: string;
-  content: string | null;
-  created_at: number;
-  updated_at: number;
-}
-
-interface CommandResponse<T> {
-  success: boolean;
-  data: T | null;
-  error: string | null;
-}
+import { CommandResponse, DailyRecord } from "../types";
 
 export default function Results() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -170,29 +157,6 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
     }
   }
 
-  async function handleSaveRecord() {
-    const dateStr = format(currentDate, "yyyy-MM-dd");
-    try {
-      const res = (await invoke("save_daily_record", {
-        date: dateStr,
-        content: editingContent,
-      })) as CommandResponse<DailyRecord>;
-      if (res.success && res.data) {
-        if (viewMode === 'month') {
-          const newRecords = new Map(records);
-          newRecords.set(dateStr, res.data);
-          setRecords(newRecords);
-        }
-      } else {
-        console.error("Save failed:", res.error);
-        alert("保存失败: " + (res.error || "未知错误"));
-      }
-    } catch (e) {
-      console.error("Failed to save record:", e);
-      alert("保存失败: " + e);
-    }
-  }
-
   async function handleSearch() {
     if (!searchQuery.trim()) return;
     try {
@@ -231,11 +195,6 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
       setViewMode(mode);
     });
   };
-
-  async function handleQuit() {
-    await autoSaveRecord();
-    await invoke("quit_app");
-  }
 
   return (
     <div style={{ padding: 24, height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>

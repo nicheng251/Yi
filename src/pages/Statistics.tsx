@@ -2,18 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths, subYears } from "date-fns";
 import { zhCN } from "date-fns/locale";
-
-interface ProjectStat {
-  project_id: string;
-  project_name: string;
-  total_minutes: number;
-}
-
-interface CommandResponse<T> {
-  success: boolean;
-  data: T | null;
-  error: string | null;
-}
+import { CommandResponse, ProjectStat } from "../types";
 
 type ViewMode = "day" | "week" | "month" | "year";
 

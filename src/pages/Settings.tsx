@@ -3,12 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useSettingsStore } from "../store/settings";
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { save } from "@tauri-apps/plugin-dialog";
-
-interface CommandResponse<T> {
-  success: boolean;
-  data: T | null;
-  error: string | null;
-}
+import { CommandResponse } from "../types";
 
 export default function Settings() {
   const { theme, setTheme, autostart, setAutostart } = useSettingsStore();
