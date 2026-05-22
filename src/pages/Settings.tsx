@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSettingsStore } from "../store/settings";
+import { useTimerStore } from "../store/timer";
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { CommandResponse } from "../types";
@@ -8,6 +9,7 @@ import { useToast } from "../components/Toast";
 
 export default function Settings() {
   const { theme, setTheme, autostart, setAutostart } = useSettingsStore();
+  const { clearActiveSession } = useTimerStore();
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -80,6 +82,7 @@ export default function Settings() {
           const content = await readTextFile(filePath);
           const res = (await invoke("import_data", { jsonData: content })) as CommandResponse<null>;
           if (res.success) {
+            clearActiveSession();
             showToast("导入成功", "success");
           } else {
             showToast("导入失败: " + (res.error || "未知错误"), "error");
