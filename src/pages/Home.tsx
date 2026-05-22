@@ -4,6 +4,7 @@ import { useTimerStore } from "../store/timer";
 import { useProjectStore } from "../store/projects";
 import { CommandResponse, Project, Session } from "../types";
 import { SortableProjectItem } from "../components/SortableProjectItem";
+import { useToast } from "../components/Toast";
 import {
   DndContext,
   closestCenter,
@@ -27,6 +28,7 @@ export default function Home() {
   const [newProjectName, setNewProjectName] = useState("");
   const { activeSession, setActiveSession, clearActiveSession } = useTimerStore();
   const { refreshProjects } = useProjectStore();
+  const { showToast } = useToast();
 
   const sensors = useSortableSensors();
 
@@ -102,11 +104,11 @@ export default function Home() {
         refreshProjects();
       } else {
         console.error("Create project failed:", res.error);
-        alert("创建失败: " + (res.error || "未知错误"));
+        showToast("创建失败: " + (res.error || "未知错误"), "error");
       }
     } catch (e) {
       console.error("Failed to create project:", e);
-      alert("创建失败: " + e);
+      showToast("创建失败: " + e, "error");
     }
   }
 
