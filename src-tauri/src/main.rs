@@ -72,6 +72,7 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                     if let Some(window) = app.get_webview_window("main") {
                         let _ = window.eval("window.dispatchEvent(new CustomEvent('tauri-quit'))");
                     }
+                    let _ = app.exit(0);
                 }
                 _ => {}
             }
@@ -322,7 +323,20 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
     let db_guard = state.db.lock().map_err(|e| e.to_string())?;
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
 
-    let data: serde_json::Value = serde_json::from_str(&json_data).map_err(|e| e.to_string())?;
+    let mut data: serde_json::Value = serde_json::from_str(&json_data).map_err(|e| e.to_string())?;
+
+    let now = chrono::Utc::now().timestamp();
+    if let Some(sessions) = data.get_mut("sessions").and_then(|s| s.as_array_mut()) {
+        for session in sessions.iter_mut() {
+            if session.get("ended_at").is_none() {
+                let started_at = session.get("started_at").and_then(|s| s.as_i64()).unwrap_or(now);
+                let minutes = (now - started_at) / 60;
+                let minutes = if minutes > 0 { minutes } else { 0 };
+                session["ended_at"] = serde_json::json!(now);
+                session["minutes"] = serde_json::json!(minutes);
+            }
+        }
+    }
 
     db.clear_all_data().map_err(|e| e.to_string())?;
 
