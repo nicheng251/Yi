@@ -23,7 +23,7 @@ impl Database {
     }
 
     fn init_tables(&self) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
 
         conn.execute_batch(
             "
@@ -98,7 +98,7 @@ impl Database {
     }
 
     pub fn get_projects(&self, include_archived: bool) -> Result<Vec<Project>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = if include_archived {
             conn.prepare("SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects ORDER BY display_order ASC")?
         } else {
@@ -132,7 +132,7 @@ impl Database {
     }
 
     pub fn get_archived_projects(&self) -> Result<Vec<Project>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
             "SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects WHERE is_archived = 1 ORDER BY display_order ASC"
         )?;
@@ -163,7 +163,7 @@ impl Database {
     }
 
     fn get_project_tags(&self, project_id: &str) -> Result<Vec<String>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
             "SELECT t.name FROM tags t JOIN project_tags pt ON t.id = pt.tag_id WHERE pt.project_id = ?"
         )?;
@@ -176,7 +176,7 @@ impl Database {
     }
 
     pub fn create_project(&self, name: &str, category_id: Option<&str>, tags: Vec<String>) -> Result<Project> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().timestamp();
 
@@ -213,7 +213,7 @@ impl Database {
     }
 
     fn add_tag_to_project(&self, project_id: &str, tag_name: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
 
         conn.execute("INSERT OR IGNORE INTO tags (id, name) VALUES (?, ?)", params![uuid::Uuid::new_v4().to_string(), tag_name])?;
 
@@ -232,7 +232,7 @@ impl Database {
     }
 
     pub fn update_project(&self, id: &str, name: &str, category_id: Option<&str>, tags: Vec<String>) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let now = chrono::Utc::now().timestamp();
 
         conn.execute(
@@ -252,7 +252,7 @@ impl Database {
     }
 
     pub fn archive_project(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let now = chrono::Utc::now().timestamp();
         conn.execute(
             "UPDATE projects SET is_archived = 1, updated_at = ? WHERE id = ?",
@@ -262,7 +262,7 @@ impl Database {
     }
 
     pub fn unarchive_project(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let now = chrono::Utc::now().timestamp();
 
         let max_order: i64 = conn.query_row(
@@ -281,7 +281,7 @@ impl Database {
     }
 
     pub fn delete_project(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         conn.execute("DELETE FROM project_tags WHERE project_id = ?", [id])?;
         conn.execute("DELETE FROM sessions WHERE project_id = ?", [id])?;
         conn.execute("DELETE FROM projects WHERE id = ?", [id])?;
@@ -289,7 +289,7 @@ impl Database {
     }
 
     pub fn reorder_projects(&self, project_ids: &[String]) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         for (index, id) in project_ids.iter().enumerate() {
             conn.execute(
                 "UPDATE projects SET display_order = ? WHERE id = ?",
@@ -300,7 +300,7 @@ impl Database {
     }
 
     pub fn get_categories(&self) -> Result<Vec<Category>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare("SELECT id, name FROM categories ORDER BY name")?;
 
         let cat_iter = stmt.query_map([], |row| {
@@ -314,14 +314,14 @@ impl Database {
     }
 
     pub fn create_category(&self, name: &str) -> Result<Category> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let id = uuid::Uuid::new_v4().to_string();
         conn.execute("INSERT INTO categories (id, name) VALUES (?, ?)", params![id, name])?;
         Ok(Category { id, name: name.to_string() })
     }
 
     pub fn create_session(&self, project_id: &str) -> Result<Session> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().timestamp();
 
@@ -340,7 +340,7 @@ impl Database {
     }
 
     pub fn end_session(&self, session_id: &str) -> Result<Option<i64>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let now = chrono::Utc::now().timestamp();
 
         let started_at: i64 = conn.query_row(
@@ -361,7 +361,7 @@ impl Database {
     }
 
     pub fn get_active_session(&self) -> Result<Option<Session>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
             "SELECT id, project_id, started_at, ended_at, minutes FROM sessions WHERE ended_at IS NULL"
         )?;
@@ -384,7 +384,7 @@ impl Database {
     }
 
     pub fn get_daily_record(&self, date: &str) -> Result<Option<DailyRecord>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
             "SELECT id, date, content, created_at, updated_at FROM daily_records WHERE date = ?"
         )?;
@@ -407,7 +407,7 @@ impl Database {
     }
 
     pub fn create_or_update_daily_record(&self, date: &str, content: &str) -> Result<DailyRecord> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let now = chrono::Utc::now().timestamp();
 
         let existing = conn.query_row(
@@ -449,7 +449,7 @@ impl Database {
     }
 
     pub fn search_daily_records(&self, query: &str) -> Result<Vec<DailyRecord>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
             "SELECT id, date, content, created_at, updated_at FROM daily_records WHERE content LIKE ? ORDER BY date DESC"
         )?;
@@ -469,7 +469,7 @@ impl Database {
     }
 
     pub fn get_statistics(&self, start_date: &str, end_date: &str) -> Result<Vec<ProjectStat>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
             "SELECT p.id, p.name, COALESCE(SUM(s.minutes), 0) as total_minutes
              FROM projects p
@@ -491,7 +491,7 @@ impl Database {
     }
 
     pub fn get_project_total_minutes(&self, project_id: &str) -> Result<i64> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let minutes: i64 = conn.query_row(
             "SELECT COALESCE(SUM(minutes), 0) FROM sessions WHERE project_id = ? AND minutes IS NOT NULL",
             [project_id],
@@ -501,7 +501,7 @@ impl Database {
     }
 
     pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         let result = conn.query_row(
             "SELECT value FROM settings WHERE key = ?",
             [key],
@@ -516,7 +516,7 @@ impl Database {
     }
 
     pub fn set_setting(&self, key: &str, value: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().expect("Database lock poisoned");
         conn.execute(
             "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
             params![key, value],
