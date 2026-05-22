@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSettingsStore } from "../store/settings";
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
-import { save } from "@tauri-apps/plugin-dialog";
+import { save, open } from "@tauri-apps/plugin-dialog";
 import { CommandResponse } from "../types";
 import { useToast } from "../components/Toast";
 
@@ -65,6 +65,33 @@ export default function Settings() {
     } catch (e) {
       console.error("Failed to export:", e);
       showToast("导出失败: " + e, "error");
+    }
+  }
+
+  async function handleImport() {
+    try {
+      const filePath = await open({
+        filters: [{ name: "JSON", extensions: ["json"] }],
+        multiple: false,
+      });
+      if (filePath) {
+        try {
+          const { readTextFile } = await import("@tauri-apps/plugin-fs");
+          const content = await readTextFile(filePath);
+          const res = (await invoke("import_data", { jsonData: content })) as CommandResponse<null>;
+          if (res.success) {
+            showToast("导入成功", "success");
+          } else {
+            showToast("导入失败: " + (res.error || "未知错误"), "error");
+          }
+        } catch (readErr) {
+          console.error("Failed to read file:", readErr);
+          showToast("读取文件失败: " + readErr, "error");
+        }
+      }
+    } catch (e) {
+      console.error("Failed to import:", e);
+      showToast("导入失败: " + e, "error");
     }
   }
 
@@ -167,6 +194,18 @@ export default function Settings() {
               }}
             >
               导出数据 (JSON)
+            </button>
+            <button
+              onClick={handleImport}
+              style={{
+                padding: 12,
+                backgroundColor: "var(--bg-secondary)",
+                borderRadius: 8,
+                textAlign: "left",
+                color: "var(--text-primary)",
+              }}
+            >
+              导入数据 (JSON)
             </button>
           </div>
         </div>

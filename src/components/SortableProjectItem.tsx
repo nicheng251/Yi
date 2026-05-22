@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Project, Session } from "../types";
@@ -25,6 +26,15 @@ export function SortableProjectItem({
   onDelete,
   formatTotalMinutes,
 }: SortableProjectItemProps) {
+  const [deleteState, setDeleteState] = useState<'idle' | 'confirm'>('idle');
+
+  useEffect(() => {
+    if (deleteState === 'confirm') {
+      const timer = setTimeout(() => setDeleteState('idle'), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteState]);
+
   const {
     attributes,
     listeners,
@@ -36,6 +46,15 @@ export function SortableProjectItem({
   const style = {
     transform: CSS.Transform.toString(transform),
     opacity: isDragging ? 0.5 : 1,
+  };
+
+  const handleDeleteClick = () => {
+    if (deleteState === 'confirm') {
+      onDelete(project.id);
+      setDeleteState('idle');
+    } else {
+      setDeleteState('confirm');
+    }
   };
 
   return (
@@ -82,10 +101,11 @@ export function SortableProjectItem({
           归档
         </button>
         <button
-          onClick={() => onDelete(project.id)}
-          className="btn btn-danger"
+          onClick={handleDeleteClick}
+          className={deleteState === 'confirm' ? 'btn btn-danger' : 'btn btn-danger'}
+          style={deleteState === 'confirm' ? { fontWeight: 'bold' } : {}}
         >
-          删除
+          {deleteState === 'confirm' ? '确认删除?' : '删除'}
         </button>
       </div>
     </div>

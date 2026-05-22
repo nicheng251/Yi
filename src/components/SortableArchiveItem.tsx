@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
@@ -12,6 +13,15 @@ interface SortableArchiveItemProps {
 }
 
 export function SortableArchiveItem({ project, onUnarchive, onDelete }: SortableArchiveItemProps) {
+  const [deleteState, setDeleteState] = useState<'idle' | 'confirm'>('idle');
+
+  useEffect(() => {
+    if (deleteState === 'confirm') {
+      const timer = setTimeout(() => setDeleteState('idle'), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteState]);
+
   const {
     attributes,
     listeners,
@@ -25,6 +35,15 @@ export function SortableArchiveItem({ project, onUnarchive, onDelete }: Sortable
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+  };
+
+  const handleDeleteClick = () => {
+    if (deleteState === 'confirm') {
+      onDelete(project.id);
+      setDeleteState('idle');
+    } else {
+      setDeleteState('confirm');
+    }
   };
 
   return (
@@ -60,10 +79,11 @@ export function SortableArchiveItem({ project, onUnarchive, onDelete }: Sortable
           重新启用
         </button>
         <button
-          onClick={() => onDelete(project.id)}
-          className="btn btn-danger"
+          onClick={handleDeleteClick}
+          className={deleteState === 'confirm' ? 'btn btn-danger' : 'btn btn-danger'}
+          style={deleteState === 'confirm' ? { fontWeight: 'bold' } : {}}
         >
-          删除
+          {deleteState === 'confirm' ? '确认删除?' : '删除'}
         </button>
       </div>
     </div>
