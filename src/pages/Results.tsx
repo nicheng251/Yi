@@ -23,8 +23,10 @@ export default function Results() {
   const [viewMode, setViewMode] = useState<'month' | 'day'>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [editingContent, setEditingContent] = useState("");
+  const [originalContent, setOriginalContent] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<DailyRecord[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     if (viewMode === 'month') {
@@ -37,6 +39,18 @@ export default function Results() {
       loadDayRecord(currentDate);
     }
   }, [viewMode, currentDate]);
+
+  useEffect(() => {
+    if (viewMode === 'month' && isDirty) {
+      autoSaveRecord();
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (editingContent !== originalContent) {
+      setIsDirty(true);
+    }
+  }, [editingContent, originalContent]);
 
   async function loadMonthRecords() {
     try {
@@ -67,11 +81,36 @@ export default function Results() {
       const res = (await invoke("get_daily_record", { date: dateStr })) as CommandResponse<DailyRecord | null>;
       if (res.success && res.data) {
         setEditingContent(res.data.content || "");
+        setOriginalContent(res.data.content || "");
       } else {
         setEditingContent("");
+        setOriginalContent("");
       }
+      setIsDirty(false);
     } catch (e) {
       console.error("Failed to load record:", e);
+    }
+  }
+
+  async function autoSaveRecord() {
+    if (!isDirty) return;
+    const dateStr = format(currentDate, "yyyy-MM-dd");
+    try {
+      const res = (await invoke("save_daily_record", {
+        date: dateStr,
+        content: editingContent,
+      })) as CommandResponse<DailyRecord>;
+      if (res.success && res.data) {
+        setOriginalContent(editingContent);
+        setIsDirty(false);
+        if (viewMode === 'month') {
+          const newRecords = new Map(records);
+          newRecords.set(dateStr, res.data);
+          setRecords(newRecords);
+        }
+      }
+    } catch (e) {
+      console.error("Auto-save failed:", e);
     }
   }
 
@@ -118,13 +157,23 @@ export default function Results() {
   const firstDayOfWeek = startOfMonth(currentMonth).getDay();
 
   const handleDateClick = (day: Date) => {
-    setCurrentDate(day);
-    setViewMode('day');
+    autoSaveRecord().then(() => {
+      setCurrentDate(day);
+      setViewMode('day');
+    });
   };
 
   const handleGoToToday = () => {
-    setCurrentDate(new Date());
-    setViewMode('day');
+    autoSaveRecord().then(() => {
+      setCurrentDate(new Date());
+      setViewMode('day');
+    });
+  };
+
+  const handleSetViewMode = (mode: 'month' | 'day') => {
+    autoSaveRecord().then(() => {
+      setViewMode(mode);
+    });
   };
 
   return (
@@ -152,7 +201,7 @@ export default function Results() {
           </button>
           <div style={{ width: 1, height: 24, backgroundColor: "var(--border)", margin: "0 8px" }} />
           <button
-            onClick={() => setViewMode('day')}
+            onClick={() => handleSetViewMode('day')}
             style={{
               padding: "8px 16px",
               backgroundColor: viewMode === 'day' ? "var(--accent)" : "var(--bg-secondary)",
@@ -163,7 +212,7 @@ export default function Results() {
             日视图
           </button>
           <button
-            onClick={() => setViewMode('month')}
+            onClick={() => handleSetViewMode('month')}
             style={{
               padding: "8px 16px",
               backgroundColor: viewMode === 'month' ? "var(--accent)" : "var(--bg-secondary)",
@@ -259,13 +308,13 @@ export default function Results() {
       ) : (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16 }}>
-            <button onClick={() => setCurrentDate(d => subDays(d, 1))} style={{ padding: "8px 12px", backgroundColor: "var(--bg-secondary)", borderRadius: 6 }}>
+            <button onClick={() => autoSaveRecord().then(() => setCurrentDate(d => subDays(d, 1)))} style={{ padding: "8px 12px", backgroundColor: "var(--bg-secondary)", borderRadius: 6 }}>
               ←
             </button>
             <span style={{ fontWeight: 500, fontSize: 18, minWidth: 200, textAlign: "center" }}>
               {format(currentDate, "yyyy 年 MM 月 dd 日 EEE", { locale: zhCN })}
             </span>
-            <button onClick={() => setCurrentDate(d => addDays(d, 1))} style={{ padding: "8px 12px", backgroundColor: "var(--bg-secondary)", borderRadius: 6 }}>
+            <button onClick={() => autoSaveRecord().then(() => setCurrentDate(d => addDays(d, 1)))} style={{ padding: "8px 12px", backgroundColor: "var(--bg-secondary)", borderRadius: 6 }}>
               →
             </button>
             <button onClick={handleGoToToday} style={{ padding: "8px 16px", backgroundColor: "var(--bg-tertiary)", color: "var(--text-primary)", borderRadius: 6 }}>
@@ -291,14 +340,6 @@ export default function Results() {
                 fontFamily: "inherit",
               }}
             />
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button
-                onClick={handleSaveRecord}
-                style={{ padding: "12px 32px", backgroundColor: "var(--accent)", color: "white", borderRadius: 6, fontSize: 16 }}
-              >
-                保存
-              </button>
-            </div>
           </div>
         </div>
       )}
