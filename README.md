@@ -1,9 +1,13 @@
 # Yi - Focus Productivity Tool
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.1.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg" alt="Platform">
   <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="License">
+</p>
+
+<p align="center">
+  <img src="src-tauri/icons/icon.png" alt="Yi App Icon" width="256">
 </p>
 
 <p align="center">
@@ -29,6 +33,7 @@
 - Calendar-based view for browsing achievements
 - Write and edit achievements for any past date
 - Full-text search across all records
+- **Auto-save when leaving day view or exiting app**
 
 ### 📊 Statistics
 - View focus time by day, week, month, or year
