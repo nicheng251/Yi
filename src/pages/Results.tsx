@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, getDaysInMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, getDaysInMonth, subDays, addDays, isSameDay } from "date-fns";
 import { zhCN } from "date-fns/locale";
 
 interface DailyRecord {
@@ -20,14 +20,23 @@ interface CommandResponse<T> {
 export default function Results() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [records, setRecords] = useState<Map<string, DailyRecord>>(new Map());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'month' | 'day'>('month');
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [editingContent, setEditingContent] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<DailyRecord[]>([]);
 
   useEffect(() => {
-    loadMonthRecords();
-  }, [currentMonth]);
+    if (viewMode === 'month') {
+      loadMonthRecords();
+    }
+  }, [currentMonth, viewMode]);
+
+  useEffect(() => {
+    if (viewMode === 'day') {
+      loadDayRecord(currentDate);
+    }
+  }, [viewMode, currentDate]);
 
   async function loadMonthRecords() {
     try {
@@ -52,22 +61,36 @@ export default function Results() {
     }
   }
 
+  async function loadDayRecord(date: Date) {
+    const dateStr = format(date, "yyyy-MM-dd");
+    try {
+      const res = (await invoke("get_daily_record", { date: dateStr })) as CommandResponse<DailyRecord | null>;
+      if (res.success && res.data) {
+        setEditingContent(res.data.content || "");
+      } else {
+        setEditingContent("");
+      }
+    } catch (e) {
+      console.error("Failed to load record:", e);
+    }
+  }
+
   async function handleSaveRecord() {
-    if (!selectedDate) return;
+    const dateStr = format(currentDate, "yyyy-MM-dd");
     try {
       const res = (await invoke("save_daily_record", {
-        date: selectedDate,
+        date: dateStr,
         content: editingContent,
       })) as CommandResponse<DailyRecord>;
       if (res.success && res.data) {
-        const newRecords = new Map(records);
-        newRecords.set(selectedDate, res.data);
-        setRecords(newRecords);
-        setSelectedDate(null);
-        setEditingContent("");
+        if (viewMode === 'month') {
+          const newRecords = new Map(records);
+          newRecords.set(dateStr, res.data);
+          setRecords(newRecords);
+        }
       } else {
         console.error("Save failed:", res.error);
-        alert("保存失败: " + res.error);
+        alert("保存失败: " + (res.error || "未知错误"));
       }
     } catch (e) {
       console.error("Failed to save record:", e);
@@ -94,11 +117,21 @@ export default function Results() {
 
   const firstDayOfWeek = startOfMonth(currentMonth).getDay();
 
+  const handleDateClick = (day: Date) => {
+    setCurrentDate(day);
+    setViewMode('day');
+  };
+
+  const handleGoToToday = () => {
+    setCurrentDate(new Date());
+    setViewMode('day');
+  };
+
   return (
     <div style={{ padding: 24, height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ fontSize: 24, fontWeight: 600 }}>成果记录</h1>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input
             type="text"
             value={searchQuery}
@@ -116,6 +149,29 @@ export default function Results() {
           />
           <button onClick={handleSearch} style={{ padding: "8px 16px", backgroundColor: "var(--accent)", color: "white", borderRadius: 6 }}>
             搜索
+          </button>
+          <div style={{ width: 1, height: 24, backgroundColor: "var(--border)", margin: "0 8px" }} />
+          <button
+            onClick={() => setViewMode('month')}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: viewMode === 'month' ? "var(--accent)" : "var(--bg-secondary)",
+              color: viewMode === 'month' ? "white" : "var(--text-primary)",
+              borderRadius: 6,
+            }}
+          >
+            月视图
+          </button>
+          <button
+            onClick={() => setViewMode('day')}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: viewMode === 'day' ? "var(--accent)" : "var(--bg-secondary)",
+              color: viewMode === 'day' ? "white" : "var(--text-primary)",
+              borderRadius: 6,
+            }}
+          >
+            日视图
           </button>
         </div>
       </div>
@@ -139,7 +195,7 @@ export default function Results() {
             ))}
           </div>
         </div>
-      ) : (
+      ) : viewMode === 'month' ? (
         <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} style={{ padding: "8px 12px", backgroundColor: "var(--bg-secondary)", borderRadius: 6 }}>
@@ -175,16 +231,13 @@ export default function Results() {
               const dateStr = format(day, "yyyy-MM-dd");
               const record = records.get(dateStr);
               const hasContent = !!record?.content;
-              const isSelected = selectedDate === dateStr;
+              const isSelected = isSameDay(day, currentDate);
               const isPast = day < new Date() && !isToday(day);
 
               return (
                 <button
                   key={dateStr}
-                  onClick={() => {
-                    setSelectedDate(dateStr);
-                    setEditingContent(record?.content || "");
-                  }}
+                  onClick={() => handleDateClick(day)}
                   style={{
                     padding: 8,
                     minHeight: 60,
@@ -203,62 +256,45 @@ export default function Results() {
             })}
           </div>
         </>
-      )}
+      ) : (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16 }}>
+            <button onClick={() => setCurrentDate(d => subDays(d, 1))} style={{ padding: "8px 12px", backgroundColor: "var(--bg-secondary)", borderRadius: 6 }}>
+              ←
+            </button>
+            <span style={{ fontWeight: 500, fontSize: 18, minWidth: 200, textAlign: "center" }}>
+              {format(currentDate, "yyyy 年 MM 月 dd 日 EEE", { locale: zhCN })}
+            </span>
+            <button onClick={() => setCurrentDate(d => addDays(d, 1))} style={{ padding: "8px 12px", backgroundColor: "var(--bg-secondary)", borderRadius: 6 }}>
+              →
+            </button>
+            <button onClick={handleGoToToday} style={{ padding: "8px 16px", backgroundColor: "var(--bg-tertiary)", color: "var(--text-primary)", borderRadius: 6 }}>
+              今天
+            </button>
+          </div>
 
-      {selectedDate && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100,
-          }}
-          onClick={() => setSelectedDate(null)}
-        >
-          <div
-            style={{
-              backgroundColor: "var(--bg-primary)",
-              padding: 24,
-              borderRadius: 12,
-              width: 500,
-              maxHeight: "80vh",
-              overflow: "auto",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ marginBottom: 16 }}>{selectedDate} 成果记录</h3>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
             <textarea
               value={editingContent}
               onChange={(e) => setEditingContent(e.target.value)}
               placeholder="记录今天的成果..."
               style={{
-                width: "100%",
-                height: 200,
-                padding: 12,
+                flex: 1,
+                minHeight: 300,
+                padding: 16,
                 borderRadius: 8,
                 border: "1px solid var(--border)",
                 backgroundColor: "var(--bg-secondary)",
                 color: "var(--text-primary)",
                 resize: "vertical",
                 fontSize: 14,
+                fontFamily: "inherit",
               }}
             />
-            <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
-              <button
-                onClick={() => setSelectedDate(null)}
-                style={{ padding: "8px 16px", backgroundColor: "var(--bg-tertiary)", color: "var(--text-primary)", borderRadius: 6 }}
-              >
-                取消
-              </button>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button
                 onClick={handleSaveRecord}
-                style={{ padding: "8px 16px", backgroundColor: "var(--accent)", color: "white", borderRadius: 6 }}
+                style={{ padding: "12px 32px", backgroundColor: "var(--accent)", color: "white", borderRadius: 6, fontSize: 16 }}
               >
                 保存
               </button>
