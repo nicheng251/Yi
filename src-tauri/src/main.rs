@@ -302,11 +302,15 @@ fn export_data(state: State<AppState>) -> Result<CommandResponse<String>, String
     let projects = db.get_projects(true).map_err(|e| e.to_string())?;
     let archived = db.get_archived_projects().map_err(|e| e.to_string())?;
     let categories = db.get_categories().map_err(|e| e.to_string())?;
+    let sessions = db.get_all_sessions().map_err(|e| e.to_string())?;
+    let daily_records = db.get_all_daily_records().map_err(|e| e.to_string())?;
     let all_projects: Vec<_> = projects.into_iter().chain(archived.into_iter()).collect();
 
     let export = serde_json::json!({
         "projects": all_projects,
         "categories": categories,
+        "sessions": sessions,
+        "daily_records": daily_records,
         "exported_at": chrono::Utc::now().to_rfc3339(),
     });
 
@@ -320,20 +324,7 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
 
     let data: serde_json::Value = serde_json::from_str(&json_data).map_err(|e| e.to_string())?;
 
-    if let Some(projects) = data.get("projects").and_then(|p| p.as_array()) {
-        for project_val in projects {
-            let name = project_val.get("name").and_then(|n| n.as_str()).unwrap_or("Unnamed");
-            let category_id = project_val.get("category_id").and_then(|c| c.as_str()).map(String::from);
-            let tags_val = project_val.get("tags").and_then(|t| t.as_array());
-            let tags: Vec<String> = tags_val
-                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-                .unwrap_or_default();
-
-            if let Err(e) = db.create_project(name, category_id.as_deref(), tags) {
-                tracing::warn!("Failed to import project {}: {}", name, e);
-            }
-        }
-    }
+    db.clear_all_data().map_err(|e| e.to_string())?;
 
     if let Some(categories) = data.get("categories").and_then(|c| c.as_array()) {
         for cat_val in categories {
@@ -344,12 +335,64 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
         }
     }
 
+    if let Some(projects) = data.get("projects").and_then(|p| p.as_array()) {
+        for project_val in projects {
+            let id = project_val.get("id").and_then(|i| i.as_str()).unwrap_or("");
+            let name = project_val.get("name").and_then(|n| n.as_str()).unwrap_or("Unnamed");
+            let category_id = project_val.get("category_id").and_then(|c| c.as_str());
+            let tags_val = project_val.get("tags").and_then(|t| t.as_array());
+            let tags: Vec<String> = tags_val
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .unwrap_or_default();
+            let is_archived = project_val.get("is_archived").and_then(|a| a.as_bool()).unwrap_or(false);
+            let display_order = project_val.get("display_order").and_then(|o| o.as_i64()).unwrap_or(0);
+
+            if let Err(e) = db.import_project(id, name, category_id, tags, is_archived, display_order) {
+                tracing::warn!("Failed to import project {}: {}", name, e);
+            }
+        }
+    }
+
+    if let Some(sessions) = data.get("sessions").and_then(|s| s.as_array()) {
+        for session_val in sessions {
+            let id = session_val.get("id").and_then(|i| i.as_str()).unwrap_or("");
+            let project_id = session_val.get("project_id").and_then(|p| p.as_str()).unwrap_or("");
+            let started_at = session_val.get("started_at").and_then(|s| s.as_i64()).unwrap_or(0);
+            let ended_at = session_val.get("ended_at").and_then(|e| e.as_i64());
+            let minutes = session_val.get("minutes").and_then(|m| m.as_i64());
+
+            if let Err(e) = db.import_session(id, project_id, started_at, ended_at, minutes) {
+                tracing::warn!("Failed to import session: {}", e);
+            }
+        }
+    }
+
+    if let Some(records) = data.get("daily_records").and_then(|r| r.as_array()) {
+        for record_val in records {
+            let id = record_val.get("id").and_then(|i| i.as_str()).unwrap_or("");
+            let date = record_val.get("date").and_then(|d| d.as_str()).unwrap_or("");
+            let content = record_val.get("content").and_then(|c| c.as_str());
+            let created_at = record_val.get("created_at").and_then(|c| c.as_i64()).unwrap_or(0);
+            let updated_at = record_val.get("updated_at").and_then(|u| u.as_i64()).unwrap_or(0);
+
+            if let Err(e) = db.import_daily_record(id, date, content, created_at, updated_at) {
+                tracing::warn!("Failed to import daily record: {}", e);
+            }
+        }
+    }
+
     Ok(CommandResponse::ok(()))
 }
 
 #[tauri::command]
 fn get_app_data_dir(state: State<AppState>) -> String {
     state.app_data_dir.to_string_lossy().to_string()
+}
+
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+    info!("Quitting application via quit_app command");
+    app.exit(0);
 }
 
 fn setup_logging(app_data_dir: &PathBuf) {
@@ -450,6 +493,7 @@ fn main() {
             export_data,
             import_data,
             get_app_data_dir,
+            quit_app,
         ])
         .run(tauri::generate_context!());
 
