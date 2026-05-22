@@ -47,9 +47,9 @@ Yi/
 | Command | Behavior |
 |---------|----------|
 | `start_session` | Auto-ends any existing session before creating new |
-| `archive_project` | Sets is_archived=1, does NOT end active session (BUG) |
-| `import_data` | Clears all data then imports (BUG: active sessions orphaned) |
-| `quit_app` | Calls app.exit(0) |
+| `archive_project` | Ends active session for project, then sets is_archived=1 |
+| `import_data` | Closes active sessions (calculates ended_at, minutes), then clears all data and imports |
+| `quit_app` | Calls app.exit(0) after dispatching tauri-quit event |
 | Close window | Hides to tray instead of closing |
 
 ## Data Model
@@ -57,13 +57,14 @@ Yi/
 - **sessions**: Active = `ended_at IS NULL`
 - **projects**: `display_order` field for sorting
 - **daily_records**: Date-keyed achievement records
+- **tags**: Shared tag definitions, cleaned up with `clear_all_data`
 
 ## TypeScript Config
 
 - Strict mode, noUnusedLocals, noUnusedParameters all enabled
 
-## Known Bugs (v0.1.1)
+## Refactoring Notes (v0.1.2)
 
-1. **Archive doesn't stop timer** - archiving project with active session leaves dangling session
-2. **Import orphans active sessions** - active sessions imported but frontend doesn't detect
-3. **Tray quit unreliable** - if Results.tsx not mounted, app never exits
+- `settings.ts`: Uses proper `CommandResponse<string>` casting instead of `as any`
+- `search_daily_records`: Escapes `%` and `_` wildcards to prevent unexpected LIKE matches
+- `clear_all_data`: Now properly cleans up `project_tags` and `tags` tables
