@@ -69,7 +69,9 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 "quit" => {
-                    app.exit(0);
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.eval("window.dispatchEvent(new CustomEvent('tauri-quit'))");
+                    }
                 }
                 _ => {}
             }
@@ -312,6 +314,40 @@ fn export_data(state: State<AppState>) -> Result<CommandResponse<String>, String
 }
 
 #[tauri::command]
+fn import_data(json_data: String, state: State<AppState>) -> Result<CommandResponse<()>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+
+    let data: serde_json::Value = serde_json::from_str(&json_data).map_err(|e| e.to_string())?;
+
+    if let Some(projects) = data.get("projects").and_then(|p| p.as_array()) {
+        for project_val in projects {
+            let name = project_val.get("name").and_then(|n| n.as_str()).unwrap_or("Unnamed");
+            let category_id = project_val.get("category_id").and_then(|c| c.as_str()).map(String::from);
+            let tags_val = project_val.get("tags").and_then(|t| t.as_array());
+            let tags: Vec<String> = tags_val
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .unwrap_or_default();
+
+            if let Err(e) = db.create_project(name, category_id.as_deref(), tags) {
+                tracing::warn!("Failed to import project {}: {}", name, e);
+            }
+        }
+    }
+
+    if let Some(categories) = data.get("categories").and_then(|c| c.as_array()) {
+        for cat_val in categories {
+            let name = cat_val.get("name").and_then(|n| n.as_str()).unwrap_or("Unnamed");
+            if let Err(e) = db.create_category(name) {
+                tracing::warn!("Failed to import category {}: {}", name, e);
+            }
+        }
+    }
+
+    Ok(CommandResponse::ok(()))
+}
+
+#[tauri::command]
 fn get_app_data_dir(state: State<AppState>) -> String {
     state.app_data_dir.to_string_lossy().to_string()
 }
@@ -412,6 +448,7 @@ fn main() {
             get_setting,
             set_setting,
             export_data,
+            import_data,
             get_app_data_dir,
         ])
         .run(tauri::generate_context!());

@@ -6,21 +6,32 @@ import Archive from "./pages/Archive";
 import Statistics from "./pages/Statistics";
 import Settings from "./pages/Settings";
 import { useSettingsStore } from "./store/settings";
+import { useTimerStore } from "./store/timer";
 import { ToastProvider } from "./components/Toast";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 function App() {
   const { theme, loadSettings } = useSettingsStore();
+  const { loadTimerSession, saveTimerSession } = useTimerStore();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     loadSettings();
+    loadTimerSession();
     setReady(true);
   }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveTimerSession();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [saveTimerSession]);
 
   if (!ready) {
     return <div style={{ padding: 20 }}>Loading...</div>;

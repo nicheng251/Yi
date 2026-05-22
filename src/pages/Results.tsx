@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, getDaysInMonth, subDays, addDays, isSameDay } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { CommandResponse, DailyRecord } from "../types";
+import { useTimerStore } from "../store/timer";
 
 export default function Results() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -14,6 +15,7 @@ export default function Results() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<DailyRecord[]>([]);
   const [isDirty, setIsDirty] = useState(false);
+  const { saveTimerSession } = useTimerStore();
 
 const autoSaveRef = useRef<() => Promise<void>>(async () => {});
 
@@ -67,7 +69,10 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     const handleQuit = () => {
-      autoSaveRef.current().then(() => {
+      Promise.all([
+        autoSaveRef.current(),
+        saveTimerSession(),
+      ]).then(() => {
         invoke("quit_app");
       });
     };
