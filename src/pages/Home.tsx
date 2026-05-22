@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTimerStore } from "../store/timer";
 import { useProjectStore } from "../store/projects";
@@ -50,6 +50,8 @@ type SortOrder = "created" | "updated" | "name" | "custom";
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [sortOrder, setSortOrder] = useState<SortOrder>("created");
+  const pendingSortOrder = useRef<SortOrder | null>(null);
+  const [sortKey, setSortKey] = useState(0);
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const { activeSession, setActiveSession, clearActiveSession } = useTimerStore();
@@ -68,7 +70,27 @@ export default function Home() {
 
   useEffect(() => {
     loadProjects();
+    loadSortOrder();
   }, []);
+
+  async function loadSortOrder() {
+    try {
+      const res = (await invoke("get_setting", { key: "sort_order" })) as CommandResponse<string | null>;
+      if (res.success && res.data) {
+        setSortOrder(res.data as SortOrder);
+      }
+    } catch (e) {
+      console.error("Failed to load sort order:", e);
+    }
+  }
+
+  async function saveSortOrder(order: SortOrder) {
+    try {
+      await invoke("set_setting", { key: "sort_order", value: order });
+    } catch (e) {
+      console.error("Failed to save sort order:", e);
+    }
+  }
 
   async function loadProjects() {
     try {
@@ -90,13 +112,15 @@ export default function Home() {
     }
   }
 
-  function sortProjects(projects: Project[], order: SortOrder): Project[] {
-    if (order === "custom") {
+  function sortProjects(projects: Project[], order: SortOrder, _sortKey?: number): Project[] {
+    const effectiveOrder = pendingSortOrder.current ?? order;
+    if (effectiveOrder === "custom") {
       return [...projects].sort((a, b) => a.display_order - b.display_order);
     }
+    pendingSortOrder.current = null;
     return [...projects].sort((a, b) => {
-      if (order === "created") return b.created_at - a.created_at;
-      if (order === "updated") return b.updated_at - a.updated_at;
+      if (effectiveOrder === "created") return b.created_at - a.created_at;
+      if (effectiveOrder === "updated") return b.updated_at - a.updated_at;
       return a.name.localeCompare(b.name, "zh");
     });
   }
@@ -178,16 +202,25 @@ export default function Home() {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const oldIndex = projects.findIndex((p) => p.id === active.id);
-      const newIndex = projects.findIndex((p) => p.id === over.id);
+      const oldIndex = sortedProjects.findIndex((p) => p.id === active.id);
+      const newIndex = sortedProjects.findIndex((p) => p.id === over.id);
 
       if (oldIndex !== -1 && newIndex !== -1) {
-        const newProjects = arrayMove(projects, oldIndex, newIndex);
-        setProjects(newProjects);
+        const newSortedProjects = arrayMove(sortedProjects, oldIndex, newIndex);
+
+        const updatedProjects = newSortedProjects.map((p, idx) => ({
+          ...p,
+          display_order: idx,
+        }));
+
+        pendingSortOrder.current = "custom";
+        setProjects(updatedProjects);
         setSortOrder("custom");
+        saveSortOrder("custom");
+        setSortKey(k => k + 1);
 
         try {
-          const projectIds = newProjects.map((p) => p.id);
+          const projectIds = newSortedProjects.map((p) => p.id);
           await invoke("reorder_projects", { projectIds });
         } catch (e) {
           console.error("Failed to reorder projects:", e);
@@ -205,7 +238,7 @@ export default function Home() {
     return `${hours} 小时 ${mins} 分钟`;
   }
 
-  const sortedProjects = sortProjects(projects, sortOrder);
+  const sortedProjects = sortProjects(projects, sortOrder, sortKey);
 
   return (
     <div style={{ padding: 24, height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
@@ -214,7 +247,12 @@ export default function Home() {
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <select
             value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            onChange={(e) => {
+              const value = e.target.value as SortOrder;
+              pendingSortOrder.current = null;
+              setSortOrder(value);
+              saveSortOrder(value);
+            }}
             style={{
               padding: "6px 12px",
               borderRadius: 6,
@@ -349,13 +387,11 @@ function SortableProjectItem({
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
   } = useSortable({ id: project.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
     opacity: isDragging ? 0.5 : 1,
   };
 

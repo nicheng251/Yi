@@ -100,9 +100,9 @@ impl Database {
     pub fn get_projects(&self, include_archived: bool) -> Result<Vec<Project>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = if include_archived {
-            conn.prepare("SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects ORDER BY display_order ASC, created_at DESC")?
+            conn.prepare("SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects ORDER BY display_order ASC")?
         } else {
-            conn.prepare("SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects WHERE is_archived = 0 ORDER BY display_order ASC, created_at DESC")?
+            conn.prepare("SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects WHERE is_archived = 0 ORDER BY display_order ASC")?
         };
 
         let project_iter = stmt.query_map([], |row| {
@@ -134,7 +134,7 @@ impl Database {
     pub fn get_archived_projects(&self) -> Result<Vec<Project>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects WHERE is_archived = 1 ORDER BY display_order ASC, updated_at DESC"
+            "SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects WHERE is_archived = 1 ORDER BY display_order ASC"
         )?;
 
         let project_iter = stmt.query_map([], |row| {
