@@ -513,10 +513,11 @@ impl Database {
     pub fn search_daily_records(&self, query: &str) -> Result<Vec<DailyRecord>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
-            "SELECT id, date, content, created_at, updated_at FROM daily_records WHERE content LIKE ? ORDER BY date DESC"
+            "SELECT id, date, content, created_at, updated_at FROM daily_records WHERE content LIKE ? ESCAPE '\\' ORDER BY date DESC"
         )?;
 
-        let search_pattern = format!("%{}%", query);
+        let escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        let search_pattern = format!("%{}%", escaped);
         let records = stmt.query_map([&search_pattern], |row| {
             Ok(DailyRecord {
                 id: row.get(0)?,
@@ -603,7 +604,7 @@ impl Database {
     pub fn clear_all_data(&self) -> Result<()> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         conn.execute_batch(
-            "DELETE FROM sessions; DELETE FROM daily_records; DELETE FROM projects; DELETE FROM categories; DELETE FROM settings;"
+            "DELETE FROM project_tags; DELETE FROM sessions; DELETE FROM daily_records; DELETE FROM projects; DELETE FROM categories; DELETE FROM tags; DELETE FROM settings;"
         )?;
         Ok(())
     }

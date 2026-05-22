@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { CommandResponse } from "../types";
 
 interface SettingsState {
   theme: "light" | "dark";
@@ -52,9 +53,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         invoke("get_setting", { key: "last_backup_date" }),
       ]);
 
-      const theme = (themeRes as any).data || "light";
-      const autostart = (autostartRes as any).data === "true";
-      const lastBackupDate = (backupDateRes as any).data || null;
+      const rawTheme = (themeRes as CommandResponse<string>).data;
+      const theme: "light" | "dark" = rawTheme === "dark" ? "dark" : "light";
+      const autostart = (autostartRes as CommandResponse<string>).data === "true";
+      const lastBackupDate = (backupDateRes as CommandResponse<string>).data || null;
 
       set({ theme, autostart, lastBackupDate });
       document.documentElement.setAttribute("data-theme", theme);
