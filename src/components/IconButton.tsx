@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import "../styles/components.css";
 
 export function CurrentTimer({ startTime }: { startTime: number }) {
   const [elapsed, setElapsed] = useState(0);
@@ -26,18 +27,8 @@ export function IconButton({ onClick, color, icon }: IconButtonProps) {
   return (
     <button
       onClick={onClick}
-      style={{
-        width: 40,
-        height: 40,
-        borderRadius: "50%",
-        backgroundColor: color,
-        border: "none",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-        padding: 0,
-      }}
+      className="btn-icon"
+      style={{ backgroundColor: color }}
     >
       {icon === "play" ? (
         <svg width="16" height="18" viewBox="0 0 16 18" fill="white">

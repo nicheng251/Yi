@@ -3,6 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { Project } from "../types";
+import "../styles/components.css";
 
 interface SortableArchiveItemProps {
   project: Project;
@@ -29,27 +30,14 @@ export function SortableArchiveItem({ project, onUnarchive, onDelete }: Sortable
   return (
     <div
       ref={setNodeRef}
-      style={{
-        ...style,
-        padding: 16,
-        backgroundColor: "var(--bg-secondary)",
-        borderRadius: 8,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}
+      className="card"
+      style={style}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div className="flex-row">
         <div
           {...attributes}
           {...listeners}
-          style={{
-            cursor: "grab",
-            padding: 4,
-            display: "flex",
-            alignItems: "center",
-            color: "var(--text-secondary)",
-          }}
+          className="drag-handle"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <rect x="2" y="3" width="12" height="2" rx="1" />
@@ -58,28 +46,22 @@ export function SortableArchiveItem({ project, onUnarchive, onDelete }: Sortable
           </svg>
         </div>
         <div>
-          <div style={{ fontWeight: 500, fontSize: 16 }}>{project.name}</div>
-          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>
+          <div className="text-primary">{project.name}</div>
+          <div className="text-secondary">
             归档于 {format(project.updated_at * 1000, "yyyy-MM-dd", { locale: zhCN })}
           </div>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div className="flex-row gap-8">
         <button
           onClick={() => onUnarchive(project.id)}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "var(--accent)",
-            color: "white",
-            borderRadius: 6,
-            fontWeight: 500,
-          }}
+          className="btn btn-primary"
         >
           重新启用
         </button>
         <button
           onClick={() => onDelete(project.id)}
-          style={{ padding: "8px 12px", backgroundColor: "var(--bg-tertiary)", color: "var(--danger)", borderRadius: 6 }}
+          className="btn btn-danger"
         >
           删除
         </button>
