@@ -141,6 +141,9 @@ export default function Home() {
     try {
       const res = (await invoke("archive_project", { id: projectId })) as CommandResponse<null>;
       if (res.success) {
+        if (activeSession?.project_id === projectId) {
+          clearActiveSession();
+        }
         loadProjects();
         refreshProjects();
       }
