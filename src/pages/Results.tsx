@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, getDaysInMonth, subDays, addDays, isSameDay } from "date-fns";
 import { zhCN } from "date-fns/locale";
@@ -28,11 +28,31 @@ export default function Results() {
   const [searchResults, setSearchResults] = useState<DailyRecord[]>([]);
   const [isDirty, setIsDirty] = useState(false);
 
+const autoSaveRef = useRef<() => Promise<void>>(async () => {});
+
   useEffect(() => {
-    if (viewMode === 'month') {
-      loadMonthRecords();
-    }
-  }, [currentMonth, viewMode]);
+    autoSaveRef.current = async () => {
+      if (!isDirty) return;
+      const dateStr = format(currentDate, "yyyy-MM-dd");
+      try {
+        const res = (await invoke("save_daily_record", {
+          date: dateStr,
+          content: editingContent,
+        })) as CommandResponse<DailyRecord>;
+        if (res.success && res.data) {
+          setOriginalContent(editingContent);
+          setIsDirty(false);
+          if (viewMode === 'month') {
+            const newRecords = new Map(records);
+            newRecords.set(dateStr, res.data);
+            setRecords(newRecords);
+          }
+        }
+      } catch (e) {
+        console.error("Auto-save failed:", e);
+      }
+    };
+  }, [isDirty, currentDate, editingContent, viewMode, records]);
 
   useEffect(() => {
     if (viewMode === 'day') {
@@ -42,15 +62,51 @@ export default function Results() {
 
   useEffect(() => {
     if (viewMode === 'month' && isDirty) {
-      autoSaveRecord();
+      autoSaveRef.current();
     }
-  }, [viewMode]);
+  }, [viewMode, isDirty]);
 
   useEffect(() => {
     if (editingContent !== originalContent) {
       setIsDirty(true);
     }
   }, [editingContent, originalContent]);
+
+  useEffect(() => {
+    return () => {
+      autoSaveRef.current();
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleQuit = () => {
+      autoSaveRef.current().then(() => {
+        invoke("quit_app");
+      });
+    };
+    window.addEventListener("tauri-quit", handleQuit);
+    return () => {
+      window.removeEventListener("tauri-quit", handleQuit);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleCtrlS = () => {
+      console.log('ctrl-s-pressed event received, viewMode:', viewMode);
+      if (viewMode === 'day') {
+        console.log('Calling autoSaveRef.current()');
+        autoSaveRef.current();
+      }
+    };
+    window.addEventListener('ctrl-s-pressed', handleCtrlS);
+    return () => window.removeEventListener('ctrl-s-pressed', handleCtrlS);
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (viewMode === 'month') {
+      loadMonthRecords();
+    }
+  }, [viewMode, currentMonth]);
 
   async function loadMonthRecords() {
     try {
@@ -175,6 +231,11 @@ export default function Results() {
       setViewMode(mode);
     });
   };
+
+  async function handleQuit() {
+    await autoSaveRecord();
+    await invoke("quit_app");
+  }
 
   return (
     <div style={{ padding: 24, height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
@@ -326,6 +387,14 @@ export default function Results() {
             <textarea
               value={editingContent}
               onChange={(e) => setEditingContent(e.target.value)}
+              onKeyDown={(e) => {
+                console.log('textarea keydown:', e.key, 'ctrl:', e.ctrlKey);
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                  e.preventDefault();
+                  console.log('textarea Ctrl+S save triggered');
+                  autoSaveRef.current().then(() => console.log('autoSave completed'));
+                }
+              }}
               placeholder="记录今天的成果..."
               style={{
                 flex: 1,
