@@ -4,6 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { Project } from "../types";
+import { formatMinutes } from "../utils/format";
 import "../styles/components.css";
 
 interface SortableArchiveItemProps {
@@ -68,6 +69,9 @@ export function SortableArchiveItem({ project, onUnarchive, onDelete }: Sortable
           <div className="text-primary">{project.name}</div>
           <div className="text-secondary">
             归档于 {format(project.updated_at * 1000, "yyyy-MM-dd", { locale: zhCN })}
+            {project.total_minutes !== undefined && project.total_minutes > 0 && (
+              <span style={{ marginLeft: 12 }}>累计 {formatMinutes(project.total_minutes)}</span>
+            )}
           </div>
         </div>
       </div>

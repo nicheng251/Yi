@@ -4,6 +4,7 @@ import { useTimerStore } from "../store/timer";
 import { useProjectStore } from "../store/projects";
 import { CommandResponse, Project, Session } from "../types";
 import { SortableProjectItem } from "../components/SortableProjectItem";
+import { StatsBar } from "../components/StatsBar";
 import { useToast } from "../components/Toast";
 import {
   DndContext,
@@ -17,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useSortableSensors } from "../hooks/useSortableSensors";
 
-type SortOrder = "created" | "updated" | "name" | "custom";
+type SortOrder = "created" | "updated" | "name" | "minutes" | "last_active" | "custom";
 
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -85,6 +86,8 @@ export default function Home() {
     return [...projects].sort((a, b) => {
       if (effectiveOrder === "created") return b.created_at - a.created_at;
       if (effectiveOrder === "updated") return b.updated_at - a.updated_at;
+      if (effectiveOrder === "minutes") return (b.total_minutes || 0) - (a.total_minutes || 0);
+      if (effectiveOrder === "last_active") return b.updated_at - a.updated_at;
       return a.name.localeCompare(b.name, "zh");
     });
   }
@@ -203,6 +206,7 @@ export default function Home() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ fontSize: 24, fontWeight: 600 }}>项目列表</h1>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <StatsBar />
           <select
             value={sortOrder}
             onChange={(e) => {
@@ -222,6 +226,7 @@ export default function Home() {
             <option value="created">创建时间</option>
             <option value="updated">最近活动时间</option>
             <option value="name">名称</option>
+            <option value="minutes">累计时长</option>
             <option value="custom">自定义</option>
           </select>
           <button
