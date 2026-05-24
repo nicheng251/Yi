@@ -405,6 +405,11 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
 }
 
 #[tauri::command]
+fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+#[tauri::command]
 fn get_app_data_dir(state: State<AppState>) -> String {
     state.app_data_dir.to_string_lossy().to_string()
 }
@@ -512,6 +517,7 @@ fn main() {
             set_setting,
             export_data,
             import_data,
+            get_app_version,
             get_app_data_dir,
             quit_app,
         ])

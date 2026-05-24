@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSettingsStore } from "../store/settings";
 import { useTimerStore } from "../store/timer";
@@ -11,9 +11,11 @@ export default function Settings() {
   const { theme, setTheme, autostart, setAutostart } = useSettingsStore();
   const { clearActiveSession } = useTimerStore();
   const { showToast } = useToast();
+  const [version, setVersion] = useState<string>("");
 
   useEffect(() => {
     checkAutostart();
+    invoke<string>("get_app_version").then(setVersion).catch(() => setVersion(""));
   }, []);
 
   async function checkAutostart() {
@@ -224,7 +226,7 @@ export default function Settings() {
           >
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontWeight: 500 }}>Yi</span>
-              <span style={{ color: "var(--text-secondary)", marginLeft: 8 }}>v0.1.0</span>
+              <span style={{ color: "var(--text-secondary)", marginLeft: 8 }}>{version ? `v${version}` : ""}</span>
             </div>
             <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
               专注生产力工具
