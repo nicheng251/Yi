@@ -139,6 +139,25 @@ export default function Statistics() {
 
   const calendarGrid = useMemo(() => {
     type CalendarItem = CalendarDay | EmptyDay;
+
+    if (viewMode === "week") {
+      const start = startOfWeek(calendarDate, { weekStartsOn: 1 });
+      const items: CalendarItem[] = [];
+      for (let i = 0; i < 7; i++) {
+        const current = new Date(start);
+        current.setDate(start.getDate() + i);
+        const dateStr = format(current, "yyyy-MM-dd");
+        const focus = dailyFocusMap.get(dateStr) || null;
+        items.push({
+          date: current,
+          isCurrentMonth: true,
+          isToday: false,
+          focus,
+        });
+      }
+      return items;
+    }
+
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
     const firstDay = new Date(year, month, 1);
@@ -166,7 +185,7 @@ export default function Statistics() {
     }
 
     return items;
-  }, [calendarDate, dailyFocusMap]);
+  }, [viewMode, calendarDate, dailyFocusMap]);
 
   const monthTotalMinutes = useMemo(() => {
     return monthlyData.reduce((sum, stat) => sum + stat.minutes, 0);
@@ -195,8 +214,11 @@ export default function Statistics() {
     switch (viewMode) {
       case "day":
         return format(now, "yyyy 年 MM 月 dd 日", { locale: zhCN });
-      case "week":
-        return format(now, "yyyy 年 MM 月", { locale: zhCN });
+      case "week": {
+        const start = startOfWeek(now, { weekStartsOn: 1 });
+        const end = endOfWeek(now, { weekStartsOn: 1 });
+        return `${format(start, "M月d日")} - ${format(end, "M月d日")}`;
+      }
       case "month":
         return format(calendarDate, "yyyy 年 MM 月", { locale: zhCN });
       case "year":
@@ -296,7 +318,10 @@ export default function Statistics() {
                   ‹
                 </button>
                 <span style={{ fontSize: 16, fontWeight: 500, color: "var(--text-primary)" }}>
-                  {format(calendarDate, "yyyy 年 MM 月", { locale: zhCN })}
+                  {viewMode === "week"
+                    ? `${format(startOfWeek(calendarDate, { weekStartsOn: 1 }), "M月d日")} - ${format(endOfWeek(calendarDate, { weekStartsOn: 1 }), "M月d日")}`
+                    : format(calendarDate, "yyyy 年 MM 月", { locale: zhCN })
+                  }
                 </span>
                 <button
                   onClick={handleNext}
