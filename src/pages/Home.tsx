@@ -61,16 +61,7 @@ export default function Home() {
     try {
       const res = (await invoke("get_projects")) as CommandResponse<Project[]>;
       if (res.success && res.data) {
-        const projectsWithTotal = await Promise.all(
-          res.data.map(async (p) => {
-            const minutesRes = (await invoke("get_project_total_minutes", { projectId: p.id })) as CommandResponse<number>;
-            return {
-              ...p,
-              total_minutes: minutesRes.success ? minutesRes.data ?? 0 : 0,
-            };
-          })
-        );
-        setProjects(projectsWithTotal);
+        setProjects(res.data);
       }
     } catch (e) {
       console.error("Failed to load projects:", e);

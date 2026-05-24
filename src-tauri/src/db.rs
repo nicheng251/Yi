@@ -100,9 +100,22 @@ impl Database {
     pub fn get_projects(&self, include_archived: bool) -> Result<Vec<Project>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = if include_archived {
-            conn.prepare("SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects ORDER BY display_order ASC")?
+            conn.prepare(
+                "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes
+                 FROM projects p
+                 LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
+                 GROUP BY p.id
+                 ORDER BY p.display_order ASC"
+            )?
         } else {
-            conn.prepare("SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects WHERE is_archived = 0 ORDER BY display_order ASC")?
+            conn.prepare(
+                "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes
+                 FROM projects p
+                 LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
+                 WHERE p.is_archived = 0
+                 GROUP BY p.id
+                 ORDER BY p.display_order ASC"
+            )?
         };
 
         let project_iter = stmt.query_map([], |row| {
@@ -116,6 +129,7 @@ impl Database {
                 sort_order: row.get(6)?,
                 tags: Vec::new(),
                 display_order: row.get(7)?,
+                total_minutes: row.get(8)?,
             })
         })?;
 
@@ -134,7 +148,12 @@ impl Database {
     pub fn get_archived_projects(&self) -> Result<Vec<Project>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
-            "SELECT id, name, category_id, created_at, updated_at, is_archived, sort_order, display_order FROM projects WHERE is_archived = 1 ORDER BY display_order ASC"
+            "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes
+             FROM projects p
+             LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
+             WHERE p.is_archived = 1
+             GROUP BY p.id
+             ORDER BY p.display_order ASC"
         )?;
 
         let project_iter = stmt.query_map([], |row| {
@@ -148,6 +167,7 @@ impl Database {
                 sort_order: row.get(6)?,
                 tags: Vec::new(),
                 display_order: row.get(7)?,
+                total_minutes: row.get(8)?,
             })
         })?;
 
@@ -209,6 +229,7 @@ impl Database {
             sort_order: "created".to_string(),
             tags,
             display_order: new_order,
+            total_minutes: 0,
         })
     }
 
@@ -645,6 +666,8 @@ pub struct Project {
     pub sort_order: String,
     pub tags: Vec<String>,
     pub display_order: i64,
+    #[serde(default)]
+    pub total_minutes: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
