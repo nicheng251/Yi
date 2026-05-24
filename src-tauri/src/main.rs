@@ -354,7 +354,12 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
         }
     }
 
-    db.clear_all_data().map_err(|e| e.to_string())?;
+    db.begin_transaction().map_err(|e| e.to_string())?;
+
+    if let Err(e) = db.clear_all_data() {
+        db.rollback_transaction().ok();
+        return Ok(CommandResponse::err(&e.to_string()));
+    }
 
     if let Some(categories) = data.get("categories").and_then(|c| c.as_array()) {
         for cat_val in categories {
@@ -378,7 +383,8 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
             let display_order = project_val.get("display_order").and_then(|o| o.as_i64()).unwrap_or(0);
 
             if let Err(e) = db.import_project(id, name, category_id, tags, is_archived, display_order) {
-                tracing::warn!("Failed to import project {}: {}", name, e);
+                db.rollback_transaction().ok();
+                return Ok(CommandResponse::err(&format!("Failed to import project {}: {}", name, e)));
             }
         }
     }
@@ -392,7 +398,8 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
             let minutes = session_val.get("minutes").and_then(|m| m.as_i64());
 
             if let Err(e) = db.import_session(id, project_id, started_at, ended_at, minutes) {
-                tracing::warn!("Failed to import session: {}", e);
+                db.rollback_transaction().ok();
+                return Ok(CommandResponse::err(&format!("Failed to import session: {}", e)));
             }
         }
     }
@@ -406,11 +413,13 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
             let updated_at = record_val.get("updated_at").and_then(|u| u.as_i64()).unwrap_or(0);
 
             if let Err(e) = db.import_daily_record(id, date, content, created_at, updated_at) {
-                tracing::warn!("Failed to import daily record: {}", e);
+                db.rollback_transaction().ok();
+                return Ok(CommandResponse::err(&format!("Failed to import daily record: {}", e)));
             }
         }
     }
 
+    db.commit_transaction().map_err(|e| e.to_string())?;
     Ok(CommandResponse::ok(()))
 }
 

@@ -68,13 +68,16 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
   }, []);
 
   useEffect(() => {
-    const handleQuit = () => {
-      Promise.all([
-        autoSaveRef.current(),
-        saveTimerSession(),
-      ]).then(() => {
-        invoke("quit_app");
-      });
+    const handleQuit = async () => {
+      try {
+        await Promise.all([
+          autoSaveRef.current(),
+          saveTimerSession(),
+        ]);
+      } catch (e) {
+        console.error("Save failed on quit:", e);
+      }
+      invoke("quit_app");
     };
     window.addEventListener("tauri-quit", handleQuit);
     return () => {

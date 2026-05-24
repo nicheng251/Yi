@@ -26,6 +26,8 @@ impl Database {
     fn init_tables(&self) -> Result<()> {
         let conn = self.conn.lock().expect("Database lock poisoned");
 
+        conn.execute_batch("PRAGMA foreign_keys = ON")?;
+
         conn.execute_batch(
             "
             CREATE TABLE IF NOT EXISTS projects (
@@ -366,6 +368,17 @@ impl Database {
 
     pub fn create_session(&self, project_id: &str) -> Result<Session> {
         let conn = self.conn.lock().expect("Database lock poisoned");
+        
+        let exists: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM projects WHERE id = ?)",
+            [project_id],
+            |row| row.get(0),
+        )?;
+        
+        if !exists {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
+        
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().timestamp();
 
@@ -646,6 +659,24 @@ impl Database {
         conn.execute_batch(
             "DELETE FROM project_tags; DELETE FROM sessions; DELETE FROM daily_records; DELETE FROM projects; DELETE FROM categories; DELETE FROM tags; DELETE FROM settings;"
         )?;
+        Ok(())
+    }
+
+    pub fn begin_transaction(&self) -> Result<()> {
+        let conn = self.conn.lock().expect("Database lock poisoned");
+        conn.execute("BEGIN TRANSACTION", [])?;
+        Ok(())
+    }
+
+    pub fn commit_transaction(&self) -> Result<()> {
+        let conn = self.conn.lock().expect("Database lock poisoned");
+        conn.execute("COMMIT", [])?;
+        Ok(())
+    }
+
+    pub fn rollback_transaction(&self) -> Result<()> {
+        let conn = self.conn.lock().expect("Database lock poisoned");
+        conn.execute("ROLLBACK", [])?;
         Ok(())
     }
 

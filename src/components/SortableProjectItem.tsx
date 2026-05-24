@@ -77,9 +77,9 @@ export function SortableProjectItem({
         <div>
           <div className="text-primary">{project.name}</div>
           <div className="text-secondary">
-            {isRunning ? (
+            {isRunning && activeSession ? (
               <span className="text-accent">
-                本次 <CurrentTimer startTime={activeSession!.started_at} /> · 总计 {formatMinutes(project.total_minutes || 0)}
+                本次 <CurrentTimer startTime={activeSession.started_at} /> · 总计 {formatMinutes(project.total_minutes || 0)}
               </span>
             ) : (
               <span>总计 {formatMinutes(project.total_minutes || 0)}</span>

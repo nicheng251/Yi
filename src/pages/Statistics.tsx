@@ -79,6 +79,8 @@ export default function Statistics() {
         end = new Date(now.getFullYear(), 11, 31);
         prevStart = new Date(now.getFullYear() - 1, 0, 1);
         break;
+      default:
+        return;
     }
 
     const prevEnd = new Date(prevStart);
