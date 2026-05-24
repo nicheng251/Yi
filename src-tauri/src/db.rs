@@ -336,12 +336,14 @@ impl Database {
 
     pub fn reorder_projects(&self, project_ids: &[String]) -> Result<()> {
         let conn = self.conn.lock().expect("Database lock poisoned");
+        conn.execute("BEGIN TRANSACTION", [])?;
         for (index, id) in project_ids.iter().enumerate() {
             conn.execute(
                 "UPDATE projects SET display_order = ? WHERE id = ?",
                 params![index as i64, id],
             )?;
         }
+        conn.execute("COMMIT", [])?;
         Ok(())
     }
 
@@ -484,6 +486,29 @@ impl Database {
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(e),
         }
+    }
+
+    pub fn get_daily_records_for_month(&self, year: i32, month: i32) -> Result<Vec<DailyRecord>> {
+        let conn = self.conn.lock().expect("Database lock poisoned");
+        let start_date = format!("{:04}-{:02}-01", year, month);
+        let end_date = format!("{:04}-{:02}-31", year, month);
+
+        let mut stmt = conn.prepare(
+            "SELECT id, date, content, created_at, updated_at FROM daily_records 
+             WHERE date >= ? AND date <= ? ORDER BY date"
+        )?;
+
+        let records = stmt.query_map([&start_date, &end_date], |row| {
+            Ok(DailyRecord {
+                id: row.get(0)?,
+                date: row.get(1)?,
+                content: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        })?;
+
+        Ok(records.filter_map(|r| r.ok()).collect())
     }
 
     pub fn create_or_update_daily_record(&self, date: &str, content: &str) -> Result<DailyRecord> {

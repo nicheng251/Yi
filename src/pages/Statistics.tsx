@@ -212,19 +212,21 @@ export default function Statistics() {
   }
 
   function getViewPeriodText(): string {
-    const now = new Date();
+    const date = calendarDate;
     switch (viewMode) {
       case "day":
-        return format(now, "yyyy 年 MM 月 dd 日", { locale: zhCN });
+        return format(date, "yyyy 年 MM 月 dd 日", { locale: zhCN });
       case "week": {
-        const start = startOfWeek(now, { weekStartsOn: 1 });
-        const end = endOfWeek(now, { weekStartsOn: 1 });
+        const start = startOfWeek(date, { weekStartsOn: 1 });
+        const end = endOfWeek(date, { weekStartsOn: 1 });
         return `${format(start, "M月d日")} - ${format(end, "M月d日")}`;
       }
       case "month":
-        return format(calendarDate, "yyyy 年 MM 月", { locale: zhCN });
+        return format(date, "yyyy 年 MM 月", { locale: zhCN });
       case "year":
-        return format(now, "yyyy 年", { locale: zhCN });
+        return format(date, "yyyy 年", { locale: zhCN });
+      default:
+        return "";
     }
   }
 

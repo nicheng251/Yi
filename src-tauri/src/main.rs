@@ -201,8 +201,10 @@ fn start_session(project_id: String, state: State<AppState>) -> Result<CommandRe
     let db_guard = state.db.lock().map_err(|e| e.to_string())?;
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
 
-    if let Ok(Some(active)) = db.get_active_session() {
-        let _ = db.end_session(&active.id);
+    let previous_session = db.get_active_session().ok().flatten();
+
+    if let Some(ref active) = previous_session {
+        db.end_session(&active.id).ok();
     }
 
     match db.create_session(&project_id) {
@@ -237,6 +239,16 @@ fn get_daily_record(date: String, state: State<AppState>) -> Result<CommandRespo
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
     match db.get_daily_record(&date) {
         Ok(record) => Ok(CommandResponse::ok(record)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn get_daily_records_for_month(year: i32, month: i32, state: State<AppState>) -> Result<CommandResponse<Vec<db::DailyRecord>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.get_daily_records_for_month(year, month) {
+        Ok(records) => Ok(CommandResponse::ok(records)),
         Err(e) => Ok(CommandResponse::err(&e.to_string())),
     }
 }
@@ -528,6 +540,7 @@ fn main() {
             end_session,
             get_active_session,
             get_daily_record,
+            get_daily_records_for_month,
             save_daily_record,
             search_records,
             get_statistics,

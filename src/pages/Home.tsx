@@ -185,6 +185,7 @@ export default function Home() {
           await invoke("reorder_projects", { projectIds });
         } catch (e) {
           console.error("Failed to reorder projects:", e);
+          refreshProjects();
         }
       }
     }

@@ -38,6 +38,7 @@ export default function Settings() {
       }
     } catch (e) {
       console.error("Failed to toggle autostart:", e);
+      showToast("自动启动设置失败", "error");
     }
   }
 

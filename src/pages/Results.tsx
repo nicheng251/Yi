@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, getDaysInMonth, subDays, addDays, isSameDay } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, subDays, addDays, isSameDay } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { CommandResponse, DailyRecord } from "../types";
 import { useTimerStore } from "../store/timer";
@@ -105,21 +105,17 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
 
   async function loadMonthRecords() {
     try {
-      const daysInMonth = getDaysInMonth(currentMonth);
-      const newRecords = new Map<string, DailyRecord>();
+      const res = (await invoke("get_daily_records_for_month", {
+        year: currentMonth.getFullYear(),
+        month: currentMonth.getMonth() + 1,
+      })) as CommandResponse<DailyRecord[]>;
 
-      for (let d = 1; d <= daysInMonth; d++) {
-        const date = format(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d), "yyyy-MM-dd");
-        try {
-          const res = (await invoke("get_daily_record", { date })) as CommandResponse<DailyRecord | null>;
-          if (res.success && res.data) {
-            newRecords.set(date, res.data);
-          }
-        } catch (e) {
-          console.error(`Failed to load record for ${date}:`, e);
+      const newRecords = new Map<string, DailyRecord>();
+      if (res.success && res.data) {
+        for (const record of res.data) {
+          newRecords.set(record.date, record);
         }
       }
-
       setRecords(newRecords);
     } catch (e) {
       console.error("Failed to load records:", e);
