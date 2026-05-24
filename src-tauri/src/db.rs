@@ -3,6 +3,7 @@ use rusqlite::{Connection, Result, params};
 use std::sync::Mutex;
 use std::path::PathBuf;
 use tracing::info;
+use chrono::TimeZone;
 
 pub struct Database {
     pub conn: Mutex<Connection>,
@@ -176,19 +177,6 @@ impl Database {
 
         let projects: Vec<Project> = project_iter.filter_map(|p| p.ok()).collect();
         Ok(projects)
-    }
-
-    fn get_project_tags(&self, project_id: &str) -> Result<Vec<String>> {
-        let conn = self.conn.lock().expect("Database lock poisoned");
-        let mut stmt = conn.prepare(
-            "SELECT t.name FROM tags t JOIN project_tags pt ON t.id = pt.tag_id WHERE pt.project_id = ?"
-        )?;
-
-        let tag_iter = stmt.query_map([project_id], |row| {
-            Ok(row.get(0)?)
-        })?;
-
-        Ok(tag_iter.filter_map(|t| t.ok()).collect())
     }
 
     pub fn create_project(&self, name: &str, category_id: Option<&str>, tags: Vec<String>) -> Result<Project> {
@@ -580,6 +568,41 @@ impl Database {
         Ok(minutes)
     }
 
+    pub fn get_monthly_sessions(&self, year: i32, month: i32) -> Result<Vec<DailySessionStat>> {
+        let conn = self.conn.lock().expect("Database lock poisoned");
+
+        let start_timestamp = chrono::Utc
+            .with_ymd_and_hms(year, month as u32, 1, 0, 0, 0)
+            .unwrap()
+            .timestamp();
+        let end_timestamp = if month == 12 {
+            chrono::Utc.with_ymd_and_hms(year + 1, 1, 1, 0, 0, 0)
+        } else {
+            chrono::Utc.with_ymd_and_hms(year, month as u32 + 1, 1, 0, 0, 0)
+        }
+        .unwrap()
+        .timestamp();
+
+        let mut stmt = conn.prepare(
+            "SELECT date(s.started_at, 'unixepoch') as day, p.name, SUM(s.minutes) as minutes
+             FROM sessions s
+             JOIN projects p ON s.project_id = p.id
+             WHERE s.started_at >= ? AND s.started_at < ? AND s.minutes IS NOT NULL
+             GROUP BY day, p.id
+             ORDER BY day, minutes DESC"
+        )?;
+
+        let stats = stmt.query_map(params![start_timestamp, end_timestamp], |row| {
+            Ok(DailySessionStat {
+                date: row.get(0)?,
+                project_name: row.get(1)?,
+                minutes: row.get(2)?,
+            })
+        })?;
+
+        Ok(stats.filter_map(|s| s.ok()).collect())
+    }
+
     pub fn get_all_sessions(&self) -> Result<Vec<Session>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
@@ -695,6 +718,13 @@ pub struct ProjectStat {
     pub project_id: String,
     pub project_name: String,
     pub total_minutes: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DailySessionStat {
+    pub date: String,
+    pub project_name: String,
+    pub minutes: i64,
 }
 
 #[cfg(test)]

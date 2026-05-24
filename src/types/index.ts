@@ -43,3 +43,15 @@ export interface ProjectStat {
   project_name: string;
   total_minutes: number;
 }
+
+export interface DailySessionStat {
+  date: string;
+  project_name: string;
+  minutes: number;
+}
+
+export interface DailyFocus {
+  date: string;
+  totalMinutes: number;
+  projects: { name: string; minutes: number }[];
+}

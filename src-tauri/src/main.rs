@@ -282,6 +282,16 @@ fn get_project_total_minutes(project_id: String, state: State<AppState>) -> Resu
 }
 
 #[tauri::command]
+fn get_monthly_sessions(year: i32, month: i32, state: State<AppState>) -> Result<CommandResponse<Vec<db::DailySessionStat>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.get_monthly_sessions(year, month) {
+        Ok(stats) => Ok(CommandResponse::ok(stats)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
 fn get_setting(key: String, state: State<AppState>) -> Result<CommandResponse<Option<String>>, String> {
     let db_guard = state.db.lock().map_err(|e| e.to_string())?;
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
@@ -513,6 +523,7 @@ fn main() {
             search_records,
             get_statistics,
             get_project_total_minutes,
+            get_monthly_sessions,
             get_setting,
             set_setting,
             export_data,
