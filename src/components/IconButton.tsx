@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import "../styles/components.css";
 
-export function CurrentTimer({ startTime }: { startTime: number }) {
+export const CurrentTimer = memo(function CurrentTimer({ startTime }: { startTime: number }) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -15,7 +15,7 @@ export function CurrentTimer({ startTime }: { startTime: number }) {
   }, [startTime]);
 
   return <span>{elapsed} 分钟</span>;
-}
+});
 
 interface IconButtonProps {
   onClick: () => void;

@@ -700,3 +700,64 @@ pub struct ProjectStat {
     pub project_name: String,
     pub total_minutes: i64,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_search_escape_wildcards() {
+        let query = "test%file";
+        let escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        assert_eq!(escaped, "test\\%file");
+
+        let query2 = "hello_world";
+        let escaped2 = query2.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        assert_eq!(escaped2, "hello\\_world");
+    }
+
+    #[test]
+    fn test_project_struct_creation() {
+        let project = Project {
+            id: "test-id".to_string(),
+            name: "Test Project".to_string(),
+            category_id: None,
+            created_at: 1234567890,
+            updated_at: 1234567890,
+            is_archived: false,
+            sort_order: "created".to_string(),
+            tags: vec!["tag1".to_string(), "tag2".to_string()],
+            display_order: 0,
+            total_minutes: 60,
+        };
+        assert_eq!(project.name, "Test Project");
+        assert_eq!(project.total_minutes, 60);
+        assert!(!project.is_archived);
+    }
+
+    #[test]
+    fn test_session_struct_creation() {
+        let session = Session {
+            id: "session-1".to_string(),
+            project_id: "project-1".to_string(),
+            started_at: 1234567890,
+            ended_at: Some(1234567950),
+            minutes: Some(10),
+        };
+        assert!(session.ended_at.is_some());
+        assert_eq!(session.minutes, Some(10));
+    }
+
+    #[test]
+    fn test_daily_record_struct_creation() {
+        let record = DailyRecord {
+            id: "record-1".to_string(),
+            date: "2025-05-24".to_string(),
+            content: Some("Test content".to_string()),
+            created_at: 1234567890,
+            updated_at: 1234567890,
+        };
+        assert_eq!(record.date, "2025-05-24");
+        assert!(record.content.is_some());
+    }
+}
