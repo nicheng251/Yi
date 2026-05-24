@@ -99,26 +99,31 @@ impl Database {
 
     pub fn get_projects(&self, include_archived: bool) -> Result<Vec<Project>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
-        let mut stmt = if include_archived {
-            conn.prepare(
-                "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes
-                 FROM projects p
-                 LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
-                 GROUP BY p.id
-                 ORDER BY p.display_order ASC"
-            )?
+        let sql = if include_archived {
+            "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes, GROUP_CONCAT(t.name, ',') as tag_names
+             FROM projects p
+             LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
+             LEFT JOIN project_tags pt ON p.id = pt.project_id
+             LEFT JOIN tags t ON pt.tag_id = t.id
+             GROUP BY p.id
+             ORDER BY p.display_order ASC"
         } else {
-            conn.prepare(
-                "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes
-                 FROM projects p
-                 LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
-                 WHERE p.is_archived = 0
-                 GROUP BY p.id
-                 ORDER BY p.display_order ASC"
-            )?
+            "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes, GROUP_CONCAT(t.name, ',') as tag_names
+             FROM projects p
+             LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
+             LEFT JOIN project_tags pt ON p.id = pt.project_id
+             LEFT JOIN tags t ON pt.tag_id = t.id
+             WHERE p.is_archived = 0
+             GROUP BY p.id
+             ORDER BY p.display_order ASC"
         };
+        let mut stmt = conn.prepare(sql)?;
 
         let project_iter = stmt.query_map([], |row| {
+            let tag_names: Option<String> = row.get(9)?;
+            let tags: Vec<String> = tag_names
+                .map(|s| s.split(',').filter(|t| !t.is_empty()).map(String::from).collect())
+                .unwrap_or_default();
             Ok(Project {
                 id: row.get(0)?,
                 name: row.get(1)?,
@@ -127,36 +132,34 @@ impl Database {
                 updated_at: row.get(4)?,
                 is_archived: row.get::<_, i32>(5)? == 1,
                 sort_order: row.get(6)?,
-                tags: Vec::new(),
+                tags,
                 display_order: row.get(7)?,
                 total_minutes: row.get(8)?,
             })
         })?;
 
-        let mut projects: Vec<Project> = project_iter.filter_map(|p| p.ok()).collect();
-
-        drop(stmt);
-        drop(conn);
-
-        for project in &mut projects {
-            project.tags = self.get_project_tags(&project.id).unwrap_or_default();
-        }
-
+        let projects: Vec<Project> = project_iter.filter_map(|p| p.ok()).collect();
         Ok(projects)
     }
 
     pub fn get_archived_projects(&self) -> Result<Vec<Project>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
-            "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes
+            "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes, GROUP_CONCAT(t.name, ',') as tag_names
              FROM projects p
              LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
+             LEFT JOIN project_tags pt ON p.id = pt.project_id
+             LEFT JOIN tags t ON pt.tag_id = t.id
              WHERE p.is_archived = 1
              GROUP BY p.id
              ORDER BY p.display_order ASC"
         )?;
 
         let project_iter = stmt.query_map([], |row| {
+            let tag_names: Option<String> = row.get(9)?;
+            let tags: Vec<String> = tag_names
+                .map(|s| s.split(',').filter(|t| !t.is_empty()).map(String::from).collect())
+                .unwrap_or_default();
             Ok(Project {
                 id: row.get(0)?,
                 name: row.get(1)?,
@@ -165,20 +168,13 @@ impl Database {
                 updated_at: row.get(4)?,
                 is_archived: true,
                 sort_order: row.get(6)?,
-                tags: Vec::new(),
+                tags,
                 display_order: row.get(7)?,
                 total_minutes: row.get(8)?,
             })
         })?;
 
-        let mut projects: Vec<Project> = project_iter.filter_map(|p| p.ok()).collect();
-        drop(stmt);
-        drop(conn);
-
-        for project in &mut projects {
-            project.tags = self.get_project_tags(&project.id).unwrap_or_default();
-        }
-
+        let projects: Vec<Project> = project_iter.filter_map(|p| p.ok()).collect();
         Ok(projects)
     }
 
