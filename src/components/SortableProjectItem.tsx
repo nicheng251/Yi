@@ -3,6 +3,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Project, Session } from "../types";
 import { IconButton, CurrentTimer } from "./IconButton";
+import { formatMinutes } from "../utils/format";
 import "../styles/components.css";
 
 interface SortableProjectItemProps {
@@ -13,7 +14,6 @@ interface SortableProjectItemProps {
   onStopTimer: () => void;
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
-  formatTotalMinutes: (minutes: number) => string;
 }
 
 export function SortableProjectItem({
@@ -24,7 +24,6 @@ export function SortableProjectItem({
   onStopTimer,
   onArchive,
   onDelete,
-  formatTotalMinutes,
 }: SortableProjectItemProps) {
   const [deleteState, setDeleteState] = useState<'idle' | 'confirm'>('idle');
 
@@ -80,10 +79,10 @@ export function SortableProjectItem({
           <div className="text-secondary">
             {isRunning ? (
               <span className="text-accent">
-                本次 <CurrentTimer startTime={activeSession!.started_at} /> · 总计 {formatTotalMinutes(project.total_minutes || 0)}
+                本次 <CurrentTimer startTime={activeSession!.started_at} /> · 总计 {formatMinutes(project.total_minutes || 0)}
               </span>
             ) : (
-              <span>总计 {formatTotalMinutes(project.total_minutes || 0)}</span>
+              <span>总计 {formatMinutes(project.total_minutes || 0)}</span>
             )}
           </div>
         </div>

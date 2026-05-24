@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths, subYears } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { CommandResponse, ProjectStat } from "../types";
+import { formatMinutes } from "../utils/format";
 
 type ViewMode = "day" | "week" | "month" | "year";
 
@@ -69,14 +70,6 @@ export default function Statistics() {
     } catch (e) {
       console.error("Failed to load statistics:", e);
     }
-  }
-
-  function formatMinutes(minutes: number): string {
-    if (minutes < 60) return `${minutes} 分钟`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (mins === 0) return `${hours} 小时`;
-    return `${hours} 小时 ${mins} 分钟`;
   }
 
   function getComparisonText(): string {
