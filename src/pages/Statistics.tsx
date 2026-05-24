@@ -239,8 +239,8 @@ export default function Statistics() {
   }
 
   return (
-    <div style={{ padding: 24, height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 600 }}>统计</h1>
         <div style={{ display: "flex", gap: 8 }}>
           {(["day", "week", "month", "year"] as ViewMode[]).map((mode) => (
@@ -263,145 +263,147 @@ export default function Statistics() {
         </div>
       </div>
 
-      <div
-        style={{
-          padding: 20,
-          backgroundColor: "var(--bg-secondary)",
-          borderRadius: 8,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div>
-          <div style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 4 }}>{getViewPeriodText()}</div>
-          <div style={{ fontSize: 28, fontWeight: 600 }}>
-            总专注 {formatMinutes(viewMode === "month" || viewMode === "week" ? monthTotalMinutes : totalMinutes)}
-          </div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>{getComparisonText()}</div>
-        </div>
-      </div>
-
-      {isCalendarView && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 16px", backgroundColor: "var(--bg-secondary)", borderRadius: 8 }}>
-            <button
-              onClick={handlePrev}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 8, fontSize: 18, color: "var(--text-primary)" }}
-            >
-              ‹
-            </button>
-            <span style={{ fontSize: 16, fontWeight: 500, color: "var(--text-primary)" }}>
-              {format(calendarDate, "yyyy 年 MM 月", { locale: zhCN })}
-            </span>
-            <button
-              onClick={handleNext}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 8, fontSize: 18, color: "var(--text-primary)" }}
-            >
-              ›
-            </button>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, padding: "12px", backgroundColor: "var(--bg-secondary)", borderRadius: 8 }}>
-            {["一", "二", "三", "四", "五", "六", "日"].map((day, i) => (
-              <div key={i} style={{
-                height: 36,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 12,
-                fontWeight: 500,
-                color: "var(--text-secondary)",
-              }}>
-                {day}
+      <div style={{ flex: 1, overflow: "auto", padding: "0 24px 24px 24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div
+            style={{
+              padding: 20,
+              backgroundColor: "var(--bg-secondary)",
+              borderRadius: 8,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 4 }}>{getViewPeriodText()}</div>
+              <div style={{ fontSize: 28, fontWeight: 600 }}>
+                总专注 {formatMinutes(viewMode === "month" || viewMode === "week" ? monthTotalMinutes : totalMinutes)}
               </div>
-            ))}
-            {calendarGrid.map((item, index) => {
-              if ("isEmpty" in item) {
-                return <div key={index} style={{ width: 36, height: 36 }} />;
-              }
-              const minutes = item.focus?.totalMinutes || 0;
-              const minutesDisplay = minutes > 0 ? formatMinutes(minutes) : "";
-              return (
-                <div
-                  key={index}
-                  onClick={() => handleDayClick(item)}
-                  style={{
-                    width: 36,
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>{getComparisonText()}</div>
+            </div>
+          </div>
+
+          {isCalendarView && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 16px", backgroundColor: "var(--bg-secondary)", borderRadius: 8 }}>
+                <button
+                  onClick={handlePrev}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 8, fontSize: 18, color: "var(--text-primary)" }}
+                >
+                  ‹
+                </button>
+                <span style={{ fontSize: 16, fontWeight: 500, color: "var(--text-primary)" }}>
+                  {format(calendarDate, "yyyy 年 MM 月", { locale: zhCN })}
+                </span>
+                <button
+                  onClick={handleNext}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 8, fontSize: 18, color: "var(--text-primary)" }}
+                >
+                  ›
+                </button>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, padding: "12px", backgroundColor: "var(--bg-secondary)", borderRadius: 8 }}>
+                {["一", "二", "三", "四", "五", "六", "日"].map((day, i) => (
+                  <div key={i} style={{
                     height: 36,
                     display: "flex",
-                    flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    margin: "0 auto",
-                    borderRadius: "50%",
-                    cursor: "pointer",
-                    backgroundColor: minutes === 0 ? "var(--bg-tertiary)" : getDayColor(minutes),
-                    color: "var(--text-primary)",
                     fontSize: 12,
-                    fontWeight: 400,
-                    boxSizing: "border-box",
-                    transition: "background-color 0.15s",
+                    fontWeight: 500,
+                    color: "var(--text-secondary)",
+                  }}>
+                    {day}
+                  </div>
+                ))}
+                {calendarGrid.map((item, index) => {
+                  if ("isEmpty" in item) {
+                    return <div key={index} style={{ width: 36, height: 36 }} />;
+                  }
+                  const minutes = item.focus?.totalMinutes || 0;
+                  const minutesDisplay = minutes > 0 ? formatMinutes(minutes) : "";
+                  return (
+                    <div
+                      key={index}
+                      onClick={() => handleDayClick(item)}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        margin: "0 auto",
+                        borderRadius: "50%",
+                        cursor: "pointer",
+                        backgroundColor: minutes === 0 ? "var(--bg-tertiary)" : getDayColor(minutes),
+                        color: "var(--text-primary)",
+                        fontSize: 12,
+                        fontWeight: 400,
+                        boxSizing: "border-box",
+                        transition: "background-color 0.15s",
+                      }}
+                    >
+                      <span>{format(item.date, "d")}</span>
+                      {minutesDisplay && (
+                        <span style={{ fontSize: 8, color: "var(--text-secondary)" }}>
+                          {minutesDisplay}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {stats.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 48, color: "var(--text-secondary)" }}>
+                暂无专注数据
+              </div>
+            ) : (
+              stats.map((stat, index) => (
+                <div
+                  key={stat.project_id}
+                  style={{
+                    padding: 16,
+                    backgroundColor: "var(--bg-secondary)",
+                    borderRadius: 8,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                   }}
                 >
-                  <span>{format(item.date, "d")}</span>
-                  {minutesDisplay && (
-                    <span style={{ fontSize: 8, color: "var(--text-secondary)" }}>
-                      {minutesDisplay}
+                  <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                    <span
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        backgroundColor: index === 0 ? "var(--accent)" : "var(--bg-tertiary)",
+                        color: index === 0 ? "white" : "var(--text-secondary)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {index + 1}
                     </span>
-                  )}
+                    <span style={{ fontWeight: 500 }}>{stat.project_name}</span>
+                  </div>
+                  <span style={{ color: "var(--text-secondary)" }}>{formatMinutes(stat.total_minutes)}</span>
                 </div>
-              );
-            })}
+              ))
+            )}
           </div>
         </div>
-      )}
-
-      <div style={{ flex: 1, overflow: "auto" }}>
-        {stats.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 48, color: "var(--text-secondary)" }}>
-            暂无专注数据
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {stats.map((stat, index) => (
-              <div
-                key={stat.project_id}
-                style={{
-                  padding: 16,
-                  backgroundColor: "var(--bg-secondary)",
-                  borderRadius: 8,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <span
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: "50%",
-                      backgroundColor: index === 0 ? "var(--accent)" : "var(--bg-tertiary)",
-                      color: index === 0 ? "white" : "var(--text-secondary)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {index + 1}
-                  </span>
-                  <span style={{ fontWeight: 500 }}>{stat.project_name}</span>
-                </div>
-                <span style={{ color: "var(--text-secondary)" }}>{formatMinutes(stat.total_minutes)}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {selectedDay && (
