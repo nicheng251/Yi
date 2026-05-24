@@ -50,6 +50,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       const res = (await invoke("end_session", { sessionId: session.id })) as CommandResponse<null>;
       if (res.success) {
         set({ activeSession: null, loading: false });
+        localStorage.setItem("timer_session_changed", Date.now().toString());
         return true;
       }
       set({ error: res.error || "Failed to stop timer", loading: false });
@@ -67,6 +68,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       await invoke("set_setting", { key: "active_session_id", value: session.id });
       await invoke("set_setting", { key: "active_session_project", value: session.project_id });
       await invoke("set_setting", { key: "active_session_start", value: String(session.started_at) });
+      localStorage.setItem("timer_session_changed", Date.now().toString());
     } catch (e) {
       console.error("Failed to save timer session:", e);
     }
@@ -79,15 +81,28 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       const startRes = (await invoke("get_setting", { key: "active_session_start" })) as CommandResponse<string | null>;
 
       if (idRes.success && idRes.data && projectRes.success && projectRes.data && startRes.success && startRes.data) {
-        const session: Session = {
-          id: idRes.data,
-          project_id: projectRes.data,
-          started_at: parseInt(startRes.data, 10),
-        };
-        set({ activeSession: session });
+        const savedSessionId = idRes.data;
+
+        const activeRes = (await invoke("get_active_session")) as CommandResponse<Session | null>;
+        if (activeRes.success && activeRes.data && activeRes.data.id === savedSessionId) {
+          const session: Session = {
+            id: activeRes.data.id,
+            project_id: activeRes.data.project_id,
+            started_at: activeRes.data.started_at,
+            ended_at: activeRes.data.ended_at,
+            minutes: activeRes.data.minutes,
+          };
+          set({ activeSession: session });
+        } else {
+          await invoke("set_setting", { key: "active_session_id", value: "" });
+          await invoke("set_setting", { key: "active_session_project", value: "" });
+          await invoke("set_setting", { key: "active_session_start", value: "" });
+          set({ activeSession: null });
+        }
       }
     } catch (e) {
       console.error("Failed to load timer session:", e);
+      set({ activeSession: null });
     }
   },
 }));

@@ -26,8 +26,22 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "timer_session_changed") {
+        loadTimerSession();
+      }
+      if (e.key === "projects_changed") {
+        window.dispatchEvent(new CustomEvent("projects-changed"));
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  useEffect(() => {
     const handleBeforeUnload = () => {
       saveTimerSession();
+      localStorage.setItem("timer_session_changed", Date.now().toString());
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);

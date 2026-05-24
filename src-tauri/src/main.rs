@@ -114,6 +114,12 @@ fn get_archived_projects(state: State<AppState>) -> Result<CommandResponse<Vec<d
 fn create_project(name: String, category_id: Option<String>, tags: Vec<String>, state: State<AppState>) -> Result<CommandResponse<db::Project>, String> {
     let db_guard = state.db.lock().map_err(|e| e.to_string())?;
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    if name.trim().is_empty() {
+        return Ok(CommandResponse::err("Project name cannot be empty"));
+    }
+    if name.len() > 255 {
+        return Ok(CommandResponse::err("Project name must be 255 characters or less"));
+    }
     match db.create_project(&name, category_id.as_deref(), tags) {
         Ok(project) => Ok(CommandResponse::ok(project)),
         Err(e) => Ok(CommandResponse::err(&e.to_string())),

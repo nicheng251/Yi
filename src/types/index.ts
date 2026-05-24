@@ -21,9 +21,8 @@ export interface Session {
   id: string;
   project_id: string;
   started_at: number;
-  end_time?: number | null;
-  duration_minutes?: number;
-  created_at?: number;
+  ended_at?: number | null;
+  minutes?: number | null;
 }
 
 export interface DailyRecord {
