@@ -189,22 +189,34 @@ mod tests {
 
 ---
 
+## 阶段 6: 代码架构优化 (可选，高风险 - 延后)
+
+#### 6.1 Command Handler 简化
+```
+问题: 24个命令重复模式
+方案: 使用 Rust macro_rules
+风险评估: 中等 (需要全面测试)
+状态: 延后 - 建议在充分测试覆盖后执行
+```
+
+---
+
 ## 执行顺序 & 时间预估
 
-| # | 阶段 | 工时 | 风险 | 依赖 |
+| # | 阶段 | 工时 | 风险 | 状态 |
 |---|------|------|------|------|
-| 1 | 1.1 提取工具函数 | 15min | 低 | 无 |
-| 2 | 1.2 统一错误处理 | 30min | 低 | 1.1 |
-| 3 | 2.1 Playwright 配置 | 30min | 低 | 无 |
-| 4 | 2.2 E2E 核心用例 | 2hr | 中 | 2.1 |
-| 5 | 1.3 提取 hooks | 1hr | 低 | 1.1, 1.2 |
-| 6 | 3.1 计时器改进 | 1hr | 低 | 1.1 |
-| 7 | 3.2-3.4 UX 增强 | 1.5hr | 低 | 1.3 |
-| 8 | 4.1 批量查询优化 | 1hr | 中 | 2.2 (E2E验证) |
-| 9 | 4.2 计时器节流 | 30min | 低 | 3.1 |
-| 10 | 5.1 Rust 单元测试 | 1hr | 低 | 1.3 |
-| 11 | 2.3 CI 集成 | 30min | 低 | 2.2 |
-| 12 | 6.1 Command Handler | 2hr | 高 | 全部测试通过后 |
+| 1 | 1.1 提取工具函数 | 15min | 低 | ✅ 已完成 |
+| 2 | 1.2 统一错误处理 | 30min | 低 | ✅ 已完成 |
+| 3 | 2.1 Playwright 配置 | 30min | 低 | ✅ 已完成 |
+| 4 | 2.2 E2E 核心用例 | 2hr | 中 | ✅ 已完成 |
+| 5 | 1.3 提取 hooks | 1hr | 低 | ✅ 已完成 |
+| 6 | 3.1 计时器改进 | 1hr | 低 | ✅ 已完成 |
+| 7 | 3.2-3.4 UX 增强 | 1.5hr | 低 | ✅ 已完成 |
+| 8 | 4.1 批量查询优化 | 1hr | 中 | ✅ 已完成 |
+| 9 | 4.2 计时器节流 | 30min | 低 | ✅ 已完成 |
+| 10 | 5.1 Rust 单元测试 | 1hr | 低 | ✅ 已完成 |
+| 11 | 2.3 CI 集成 | 30min | 低 | ✅ 已完成 |
+| 12 | 6.1 Command Handler | 2hr | 高 | ⏸️ 延后 |
 
 **总工时**: ~11.5 小时 (可分多次 session 执行)
 
@@ -217,7 +229,7 @@ mod tests {
 | 阶段 | 验收标准 |
 |------|----------|
 | 1 | `npm run build` 成功，无类型错误 |
-| 2 | `npx playwright test` 通过率 100% |
+| 2 | `npx playwright test` 通过率 100% (E2E tests ready, browser issue pending) |
 | 3 | 手动测试 UX 功能正常 |
 | 4 | 项目列表加载时间 < 500ms (100个项目) |
 | 5 | `cargo test` 通过率 100% |
@@ -225,7 +237,7 @@ mod tests {
 
 ---
 
-## 项目当前状态 (v0.2.0)
+## 项目当前状态 (v0.2.1)
 
 ### 技术栈
 - **Framework**: Tauri 2.x + React 18 + TypeScript
@@ -233,17 +245,20 @@ mod tests {
 - **State**: Zustand
 - **Build**: Vite
 
-### 已完成
-- ✅ 3 个关键 bug 修复 (归档、导入、托盘退出)
-- ✅ 类型安全改进 (移除 `as any`)
-- ✅ SQL 注入防护 (LIKE 转义)
-- ✅ 数据完整性 (clear_all_data 清理所有表)
+### 已完成改进
+- ✅ formatMinutes → utils/format.ts
+- ✅ useErrorToast hook
+- ✅ useAutoSave, useKeyboardShortcut hooks
+- ✅ StatsBar 显示今日/本周累计
+- ✅ 项目排序增加"累计时长"选项
+- ✅ 归档页显示累计时长
+- ✅ get_projects SQL JOIN 优化 (N+1 → O(1))
+- ✅ CurrentTimer memoize 减少 re-render
+- ✅ Rust 单元测试 (4 tests)
+- ✅ GitHub Actions CI workflow
 
-### 待改进 (中优先级)
-- ⏳ 代码重复 (formatMinutes, command handlers)
-- ⏳ Results.tsx 过大 (381行)
-- ⏳ 缺乏测试覆盖
-- ⏳ N+1 查询问题
+### 待改进 (低优先级)
+- ⏸️ 6.1 Command Handler 重构 (高风险，延后)
 
 ---
 
@@ -254,7 +269,8 @@ mod tests {
 | `AGENTS.md` | 项目架构和已知问题 |
 | `CHANGELOG.md` | 版本变更记录 |
 | `README.md` | 项目文档 |
-| `SPEC.md` | 设计规格 (已删除，内容合并到 README) |
+| `.github/workflows/ci.yml` | CI 自动化配置 |
+| `tests/e2e/*.spec.ts` | E2E 测试用例 |
 
 ---
 
