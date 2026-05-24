@@ -196,15 +196,6 @@ export default function Home() {
     }
   }
 
-  function formatTotalMinutes(minutes: number): string {
-    if (minutes === 0) return "0 分钟";
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours === 0) return `${mins} 分钟`;
-    if (mins === 0) return `${hours} 小时`;
-    return `${hours} 小时 ${mins} 分钟`;
-  }
-
   const sortedProjects = sortProjects(projects, sortOrder, sortKey);
 
   return (
@@ -315,7 +306,6 @@ export default function Home() {
                       onStopTimer={handleStopTimer}
                       onArchive={handleArchive}
                       onDelete={handleDelete}
-                      formatTotalMinutes={formatTotalMinutes}
                     />
                   );
                 })}
