@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2025-05-24
+
+### Added
+
+- **StatsBar component** - Shows today's and this week's total focus time on the home page
+- **Project sorting by total minutes** - New "累计时长" (Total Duration) sort option
+- **Archived project total minutes** - Archive page now displays total focus time per project
+
+### Refactored
+
+- **Extracted utility functions** - `formatMinutes` moved to `src/utils/format.ts`
+- **Error handling hook** - Created `useErrorToast` hook for unified error/success feedback
+- **Auto-save hooks** - Created `useAutoSave` and `useKeyboardShortcut` hooks for Results.tsx refactoring
+- **Project loading optimization** - `get_projects` now uses SQL JOIN to calculate `total_minutes`, eliminating N+1 query problem
+
+### Performance
+
+- **N+1 query fix** - Project list loading improved from O(n) queries to O(1)
+- **loadProjects simplified** - No longer needs separate `get_project_total_minutes` calls per project
+
 ## [0.2.0] - 2025-05-22
 
 ### Fixed
