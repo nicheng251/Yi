@@ -18,8 +18,12 @@ import {
 import { zhCN } from "date-fns/locale";
 import { CommandResponse, ProjectStat, DailySessionStat, DailyFocus } from "../types";
 import { formatMinutes } from "../utils/format";
+import { ViewModeToggle } from "../components/ViewModeToggle";
+import { StatsCalendar } from "../components/StatsCalendar";
+import { StatsSummary } from "../components/StatsSummary";
+import { DayDetailModal } from "../components/DayDetailModal";
 
-type ViewMode = "day" | "week" | "month" | "year";
+export type ViewMode = "day" | "week" | "month" | "year";
 
 interface CalendarDay {
   date: Date;
@@ -268,126 +272,29 @@ export default function Statistics() {
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 600 }}>统计</h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          {(["day", "week", "month", "year"] as ViewMode[]).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 6,
-                backgroundColor: viewMode === mode ? "var(--accent)" : "var(--bg-secondary)",
-                color: viewMode === mode ? "white" : "var(--text-primary)",
-                fontWeight: 500,
-                cursor: "pointer",
-                border: "none",
-              }}
-            >
-              {mode === "day" ? "日" : mode === "week" ? "周" : mode === "month" ? "月" : "年"}
-            </button>
-          ))}
-        </div>
+        <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
       </div>
 
       <div style={{ flex: 1, overflow: "auto", padding: "0 24px 24px 24px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div
-            style={{
-              padding: 20,
-              backgroundColor: "var(--bg-secondary)",
-              borderRadius: 8,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 4 }}>{getViewPeriodText()}</div>
-              <div style={{ fontSize: 28, fontWeight: 600 }}>
-                总专注 {formatMinutes(viewMode === "month" || viewMode === "week" ? monthTotalMinutes : totalMinutes)}
-              </div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>{getComparisonText()}</div>
-            </div>
-          </div>
+          <StatsSummary
+            viewMode={viewMode}
+            totalMinutes={totalMinutes}
+            monthTotalMinutes={monthTotalMinutes}
+            getViewPeriodText={getViewPeriodText}
+            getComparisonText={getComparisonText}
+          />
 
           {isCalendarView && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 16px", backgroundColor: "var(--bg-secondary)", borderRadius: 8 }}>
-                <button
-                  onClick={handlePrev}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 8, fontSize: 18, color: "var(--text-primary)" }}
-                >
-                  ‹
-                </button>
-                <span style={{ fontSize: 16, fontWeight: 500, color: "var(--text-primary)" }}>
-                  {viewMode === "week"
-                    ? `${format(startOfWeek(calendarDate, { weekStartsOn: 1 }), "M月d日")} - ${format(endOfWeek(calendarDate, { weekStartsOn: 1 }), "M月d日")}`
-                    : format(calendarDate, "yyyy 年 MM 月", { locale: zhCN })
-                  }
-                </span>
-                <button
-                  onClick={handleNext}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 8, fontSize: 18, color: "var(--text-primary)" }}
-                >
-                  ›
-                </button>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, padding: "12px", backgroundColor: "var(--bg-secondary)", borderRadius: 8 }}>
-                {["一", "二", "三", "四", "五", "六", "日"].map((day, i) => (
-                  <div key={i} style={{
-                    height: 36,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "var(--text-secondary)",
-                  }}>
-                    {day}
-                  </div>
-                ))}
-                {calendarGrid.map((item, index) => {
-                  if ("isEmpty" in item) {
-                    return <div key={index} style={{ width: 36, height: 36 }} />;
-                  }
-                  const minutes = item.focus?.totalMinutes || 0;
-                  const minutesDisplay = minutes > 0 ? formatMinutes(minutes) : "";
-                  return (
-                    <div
-                      key={index}
-                      onClick={() => handleDayClick(item)}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        margin: "0 auto",
-                        borderRadius: "50%",
-                        cursor: "pointer",
-                        backgroundColor: minutes === 0 ? "var(--bg-tertiary)" : getDayColor(minutes),
-                        color: "var(--text-primary)",
-                        fontSize: 12,
-                        fontWeight: 400,
-                        boxSizing: "border-box",
-                        transition: "background-color 0.15s",
-                      }}
-                    >
-                      <span>{format(item.date, "d")}</span>
-                      {minutesDisplay && (
-                        <span style={{ fontSize: 8, color: "var(--text-secondary)" }}>
-                          {minutesDisplay}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <StatsCalendar
+              viewMode={viewMode === "week" ? "week" : "month"}
+              calendarDate={calendarDate}
+              calendarGrid={calendarGrid}
+              onPrev={handlePrev}
+              onNext={handleNext}
+              onDayClick={handleDayClick}
+              getDayColor={getDayColor}
+            />
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -436,99 +343,7 @@ export default function Statistics() {
       </div>
 
       {selectedDay && (
-        <div
-          onClick={closeModal}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: "var(--bg-primary)",
-              borderRadius: 12,
-              padding: 24,
-              minWidth: 300,
-              maxWidth: 400,
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>
-                  {format(new Date(selectedDay.date), "yyyy 年 MM 月 dd 日", { locale: zhCN })}
-                </div>
-                <div style={{ fontSize: 14, color: "var(--text-secondary)", marginTop: 4 }}>
-                  {format(new Date(selectedDay.date), "EEEE", { locale: zhCN })}
-                </div>
-              </div>
-              <button
-                onClick={closeModal}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: 24,
-                  cursor: "pointer",
-                  color: "var(--text-secondary)",
-                  padding: 4,
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {selectedDay.projects.length === 0 ? (
-                <div style={{ textAlign: "center", padding: 16, color: "var(--text-secondary)" }}>
-                  暂无专注数据
-                </div>
-              ) : (
-                selectedDay.projects
-                  .sort((a, b) => b.minutes - a.minutes)
-                  .map((project, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "8px 12px",
-                        backgroundColor: "var(--bg-secondary)",
-                        borderRadius: 6,
-                      }}
-                    >
-                      <span style={{ fontSize: 14 }}>{project.name}</span>
-                      <span style={{ fontSize: 14, color: "var(--text-secondary)" }}>
-                        {formatMinutes(project.minutes)}
-                      </span>
-                    </div>
-                  ))
-              )}
-            </div>
-
-            <div
-              style={{
-                marginTop: 16,
-                paddingTop: 16,
-                borderTop: "1px solid var(--border)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span style={{ fontSize: 14, fontWeight: 500 }}>合计</span>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>{formatMinutes(selectedDay.totalMinutes)}</span>
-            </div>
-          </div>
-        </div>
+        <DayDetailModal selectedDay={selectedDay} onClose={closeModal} />
       )}
     </div>
   );
