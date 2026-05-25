@@ -111,4 +111,4 @@ Yi/
 
 ## Version
 
-Current: v0.2.1 (defined in `src-tauri/tauri.conf.json`, read via `app.config().version`)
+Current: v0.2.2 (defined in `src-tauri/tauri.conf.json`, read via `app.config().version`)
