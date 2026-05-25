@@ -38,7 +38,7 @@
   padding: 8px 12px;
   background-color: var(--bg-tertiary);
   color: var(--text-secondary);
-  border-radius: 6;
+  border-radius: 8px;
   font-weight: 500;
   transition: all 0.15s;
   cursor: pointer;
@@ -53,7 +53,7 @@
   padding: 8px 16px;
   background-color: var(--accent);
   color: white;
-  border-radius: 6;
+  border-radius: 8px;
   font-weight: 500;
 }
 
@@ -65,7 +65,7 @@
   padding: 8px 12px;
   background-color: var(--bg-tertiary);
   color: var(--danger);
-  border-radius: 6;
+  border-radius: 8px;
 }
 
 .btn-danger:hover {
@@ -76,7 +76,7 @@
 .btn-icon {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -473,7 +473,7 @@
 
 .toggle-btn {
   padding: 6px 12px;
-  border-radius: 6;
+  border-radius: 8px;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   font-weight: 500;
