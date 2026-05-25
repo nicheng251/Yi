@@ -23,7 +23,18 @@ export function SortableProjectItem({
   onDelete,
 }: SortableProjectItemProps) {
   return (
-    <SortableItemBase project={project} onDelete={onDelete}>
+    <SortableItemBase project={project} onDelete={onDelete} actionButtons={
+      <>
+        {isRunning ? (
+          <IconButton onClick={onStopTimer} color="#dc2626" icon="stop" />
+        ) : (
+          <IconButton onClick={() => onStartTimer(project.id)} color="#22c55e" icon="play" />
+        )}
+        <button onClick={() => onArchive(project.id)} className="btn">
+          归档
+        </button>
+      </>
+    }>
       <div>
         <div className="text-primary">{project.name}</div>
         <div className="text-secondary">
@@ -35,16 +46,6 @@ export function SortableProjectItem({
             <span>总计 {formatMinutes(project.total_minutes || 0)}</span>
           )}
         </div>
-      </div>
-      <div className="flex-row gap-8">
-        {isRunning ? (
-          <IconButton onClick={onStopTimer} color="#dc2626" icon="stop" />
-        ) : (
-          <IconButton onClick={() => onStartTimer(project.id)} color="#22c55e" icon="play" />
-        )}
-        <button onClick={() => onArchive(project.id)} className="btn">
-          归档
-        </button>
       </div>
     </SortableItemBase>
   );

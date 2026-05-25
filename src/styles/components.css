@@ -8,8 +8,29 @@
   background-color: var(--bg-secondary);
   border-radius: 8px;
   display: flex;
+  gap: 16px;
+}
+
+/* Sortable Item Layout */
+.item-row {
+  display: flex;
   justify-content: space-between;
   align-items: center;
+  flex: 1;
+  gap: 16px;
+}
+
+.item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Button Variants */

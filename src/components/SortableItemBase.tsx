@@ -8,9 +8,10 @@ interface SortableItemBaseProps {
   project: Project;
   onDelete: (id: string) => void;
   children: React.ReactNode;
+  actionButtons?: React.ReactNode;
 }
 
-export function SortableItemBase({ project, onDelete, children }: SortableItemBaseProps) {
+export function SortableItemBase({ project, onDelete, children, actionButtons }: SortableItemBaseProps) {
   const [deleteState, setDeleteState] = useState<'idle' | 'confirm'>('idle');
 
   useEffect(() => {
@@ -50,28 +51,31 @@ export function SortableItemBase({ project, onDelete, children }: SortableItemBa
       className="card"
       style={style}
     >
-      <div className="flex-row">
-        <div
-          {...attributes}
-          {...listeners}
-          className="drag-handle"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <rect x="2" y="3" width="12" height="2" rx="1" />
-            <rect x="2" y="7" width="12" height="2" rx="1" />
-            <rect x="2" y="11" width="12" height="2" rx="1" />
-          </svg>
+      <div className="item-row">
+        <div className="item-left">
+          <div
+            {...attributes}
+            {...listeners}
+            className="drag-handle"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <rect x="2" y="3" width="12" height="2" rx="1" />
+              <rect x="2" y="7" width="12" height="2" rx="1" />
+              <rect x="2" y="11" width="12" height="2" rx="1" />
+            </svg>
+          </div>
+          {children}
         </div>
-        {children}
-      </div>
-      <div className="flex-row gap-8">
-        <button
-          onClick={handleDeleteClick}
-          className="btn btn-danger"
-          style={deleteState === 'confirm' ? { fontWeight: 'bold' } : {}}
-        >
-          {deleteState === 'confirm' ? '确认删除?' : '删除'}
-        </button>
+        <div className="item-right">
+          {actionButtons}
+          <button
+            onClick={handleDeleteClick}
+            className="btn btn-danger"
+            style={deleteState === 'confirm' ? { fontWeight: 'bold' } : {}}
+          >
+            {deleteState === 'confirm' ? '确认删除?' : '删除'}
+          </button>
+        </div>
       </div>
     </div>
   );
