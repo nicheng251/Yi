@@ -1,4 +1,4 @@
-import { ViewMode } from "../pages/Statistics";
+import { ViewMode } from "../types";
 import "../styles/components.css";
 
 interface ViewModeToggleProps {

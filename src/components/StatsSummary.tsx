@@ -1,4 +1,4 @@
-import { ViewMode } from "../pages/Statistics";
+import { ViewMode } from "../types";
 import { formatMinutes } from "../utils/format";
 import "../styles/components.css";
 

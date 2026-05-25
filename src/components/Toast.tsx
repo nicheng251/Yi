@@ -58,7 +58,7 @@ function ToastContainer({ toasts, onHide }: { toasts: Toast[]; onHide: (id: numb
           style={{
             padding: "12px 20px",
             borderRadius: 8,
-            backgroundColor: toast.type === "error" ? "#dc2626" : toast.type === "success" ? "#22c55e" : "var(--accent)",
+            backgroundColor: toast.type === "error" ? "var(--danger)" : toast.type === "success" ? "var(--success)" : "var(--accent)",
             color: "white",
             cursor: "pointer",
             boxShadow: "0 4px 12px rgba(0,0,0,0.15)",

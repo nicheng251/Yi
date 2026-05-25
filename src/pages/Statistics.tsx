@@ -16,14 +16,14 @@ import {
   subDays,
 } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { CommandResponse, ProjectStat, DailySessionStat, DailyFocus } from "../types";
+import { ViewMode, CommandResponse, ProjectStat, DailySessionStat, DailyFocus } from "../types";
 import { formatMinutes } from "../utils/format";
 import { ViewModeToggle } from "../components/ViewModeToggle";
 import { StatsCalendar } from "../components/StatsCalendar";
 import { StatsSummary } from "../components/StatsSummary";
 import { DayDetailModal } from "../components/DayDetailModal";
 
-export type ViewMode = "day" | "week" | "month" | "year";
+// ViewMode now defined in src/types/index.ts
 
 interface CalendarDay {
   date: Date;
@@ -269,14 +269,14 @@ export default function Statistics() {
   }
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <div className="page-header" style={{ padding: 24 }}>
+    <div className="page">
+      <div className="page-header">
         <h1 className="section-title" style={{ marginBottom: 0 }}>统计</h1>
         <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
       </div>
 
-      <div style={{ flex: 1, overflow: "auto", padding: "0 24px 24px 24px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div className="scroll-content">
+        <div className="flex-column gap-24">
           <StatsSummary
             viewMode={viewMode}
             totalMinutes={totalMinutes}
@@ -297,7 +297,7 @@ export default function Statistics() {
             />
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="flex-column gap-8">
             {stats.length === 0 ? (
               <div className="empty-state">
                 暂无专注数据
@@ -308,26 +308,13 @@ export default function Statistics() {
                   key={stat.project_id}
                   className="flex-between stat-card"
                 >
-                  <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                    <span
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: "50%",
-                        backgroundColor: index === 0 ? "var(--accent)" : "var(--bg-tertiary)",
-                        color: index === 0 ? "white" : "var(--text-secondary)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }}
-                    >
+                  <div className="flex-row gap-12" style={{ flex: 1 }}>
+                    <span className={`rank-badge ${index === 0 ? 'top' : ''}`}>
                       {index + 1}
                     </span>
-                    <span style={{ fontWeight: 500 }}>{stat.project_name}</span>
+                    <span className="text-primary">{stat.project_name}</span>
                   </div>
-                  <span style={{ color: "var(--text-secondary)" }}>{formatMinutes(stat.total_minutes)}</span>
+                  <span className="text-secondary">{formatMinutes(stat.total_minutes)}</span>
                 </div>
               ))
             )}

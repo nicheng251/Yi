@@ -26,13 +26,13 @@ export function StatsBar({ currentProjectMinutes = 0 }: StatsBarProps) {
       const weekEnd = Math.floor(endOfWeek(now, { weekStartsOn: 1 }).getTime() / 1000);
 
       const todayRes = (await invoke("get_statistics", {
-        startDate: String(todayStart),
-        endDate: String(todayEnd),
+        startDate: todayStart,
+        endDate: todayEnd,
       })) as CommandResponse<ProjectStat[]>;
 
       const weekRes = (await invoke("get_statistics", {
-        startDate: String(weekStart),
-        endDate: String(weekEnd),
+        startDate: weekStart,
+        endDate: weekEnd,
       })) as CommandResponse<ProjectStat[]>;
 
       if (todayRes.success && todayRes.data) {
