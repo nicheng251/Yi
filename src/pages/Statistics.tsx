@@ -270,8 +270,8 @@ export default function Statistics() {
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 600 }}>统计</h1>
+      <div className="page-header" style={{ padding: 24 }}>
+        <h1 className="section-title" style={{ marginBottom: 0 }}>统计</h1>
         <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
       </div>
 
@@ -299,21 +299,14 @@ export default function Statistics() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {stats.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 48, color: "var(--text-secondary)" }}>
+              <div className="empty-state">
                 暂无专注数据
               </div>
             ) : (
               stats.map((stat, index) => (
                 <div
                   key={stat.project_id}
-                  style={{
-                    padding: 16,
-                    backgroundColor: "var(--bg-secondary)",
-                    borderRadius: 8,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
+                  className="flex-between stat-card"
                 >
                   <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                     <span

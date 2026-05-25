@@ -1,114 +1,61 @@
-# Yi - Focus Productivity Tool
+# Project Instructions
 
-## Build Commands
+This file provides context for AI assistants working on this project.
 
-```bash
-cd yi
-npm run tauri dev      # Dev mode (frontend + backend)
-npm run tauri build    # Production build
-npm run build          # Frontend only (tsc + vite)
-cd src-tauri && cargo test    # Rust tests
-cd yi && npx tsc --noEmit     # TypeScript check
-```
+## Project Type: Node.js
 
-## Project Structure
+### Commands
+- Install: `npm install`
+- Test: `npm test`
+- Build: `npm run build`
+- Start: `npm start`
 
-```
-Yi/
-├── yi/                 # Main project (git repo root)
-│   ├── src/            # React frontend
-│   │   ├── pages/      # Home, Results, Archive, Statistics, Settings
-│   │   ├── store/      # Zustand stores (timer.ts, projects.ts, settings.ts)
-│   │   ├── components/ # UI components (IconButton, Toast, StatsBar, etc.)
-│   │   ├── hooks/      # Custom React hooks (useAutoSave, useErrorToast)
-│   │   ├── types/      # TypeScript interfaces (align with Rust types!)
-│   │   └── utils/      # Utility functions (format.ts)
-│   └── src-tauri/      # Rust backend
-│       └── src/
-│           ├── main.rs # Entry point + Tauri commands + tray setup
-│           └── db.rs   # SQLite database operations + tests
-└── AGENTS.md           # This file
-```
+### Framework: Vite
+
+### Documentation
+See README.md for project overview.
+
+### Version Control
+This project uses Git. See .gitignore for excluded files.
+
+## Agent Guidance
+
+<!-- How should an AI agent approach this project? Fill in tool gotchas, -->
+<!-- file patterns to avoid, and anything that helps a model navigate -->
+<!-- the codebase without reading every file. -->
+
+- **CodeWhale reads this file as:** <!-- WHALE.md (CodeWhale-native) or AGENTS.md (compatible with other agents) -->
+- **Read-only surface:** <!-- Which directories can the agent read but not write? -->
+- **Never edit:** <!-- Files that are generated, vendored, or owned by another tool -->
+- **Always test with:** <!-- The single command that validates a change (e.g. `cargo test -p foo`) -->
 
 ## Architecture
 
-- **Framework**: Tauri 2.x + React 18 + TypeScript
-- **Database**: SQLite (rusqlite with bundled)
-- **State**: Zustand for frontend state management
+<!-- Describe the high-level structure. What are the key modules and how -->
+<!-- do they connect? Focus on the context a new contributor would need. -->
 
-## Testing
+### Entry Points
+<!-- Where does execution start? Binary entry, request handler, main loop? -->
 
-| Test | Command |
-|------|---------|
-| Rust unit tests | `cd src-tauri && cargo test` (4 tests currently) |
-| TypeScript check | `npx tsc --noEmit` |
-| Rust compilation | `cd src-tauri && cargo check` |
-| E2E (Playwright) | `npx playwright test` (requires browser install) |
+### Key Modules
+<!-- List the 3-6 most important directories/files and their role -->
 
-## Critical Files
+### Data Flow
+<!-- How does a request / event / input travel through the system? -->
 
-| File | Purpose |
-|------|---------|
-| `src/pages/Results.tsx` | Mounts `tauri-quit` event listener for save-on-quit |
-| `src/store/timer.ts` | activeSession, startTimer, stopTimer |
-| `src/pages/Settings.tsx` | Uses `invoke("get_app_version")` for dynamic version display |
-| `src-tauri/src/main.rs` | Tauri commands, tray setup, window events |
-| `src-tauri/src/db.rs` | All database operations, SQL queries |
-| `src-tauri/capabilities/default.json` | Webview permissions (devtools, zoom denied) |
-| `src/hooks/useBrowserRestrictions.ts` | Blocks browser shortcuts, right-click, mouse nav |
+## Cache Stability
 
-## Important Behaviors
+<!-- DeepSeek V4 uses a byte-stable prefix cache (128-token granularity). -->
+<!-- Keeping these things stable turn-over-turn saves ~90% on input tokens. -->
 
-| Command | Behavior |
-|---------|----------|
-| `start_session` | Auto-ends any existing session before creating new |
-| `archive_project` | Ends active session for project, then sets is_archived=1 |
-| `import_data` | Closes active sessions (calculates ended_at, minutes), then clears all data and imports |
-| `quit_app` | Calls app.exit(0) after dispatching tauri-quit event |
-| Close window | Hides to tray instead of closing |
-| `get_app_version` | Returns version from `tauri.conf.json` via `app.config().version` |
+- **Frequently-rebuilt files:** <!-- Generated code, lockfiles, build artifacts → mark as cache-churn -->
+- **Stable scaffolding:** <!-- Config files, project instructions, model cards → keep byte-stable -->
+- **Append, don't reorder:** <!-- New context goes at the end of the request; reordering invalidates cache -->
 
-## Data Model
+## Guidelines
 
-- **sessions**: Active = `ended_at IS NULL`
-- **projects**: `display_order` field for sorting; tags via `project_tags` junction table
-- **daily_records**: Date-keyed achievement records
-- **tags**: Shared tag definitions, cleaned up with `clear_all_data`
-
-## TypeScript/Rust Type Alignment
-
-**Critical**: TypeScript types in `src/types/index.ts` must match Rust structs in `src-tauri/src/db.rs`
-
-| Type | Important Notes |
-|------|-----------------|
-| `Category` | Rust has NO `created_at` field - do not add to TS |
-| `Session` | Rust uses `Option<i64>` for nullable fields |
-| `CommandResponse<T>` | TS uses `data: T \| null` to match Rust `Option<T>` |
-
-## Performance Notes
-
-- `get_projects()` and `get_archived_projects()` use GROUP_CONCAT JOIN to fetch tags in single query (avoids N+1)
-- StatsBar shows today/week totals via `get_project_stats()`
-- LIKE queries escape `%` and `_` wildcards (see `search_daily_records`)
-
-## UI Conventions
-
-- All buttons use `border-radius: 8px` (unified)
-- Play/Stop icons: no background, colored SVG icons (video player style)
-- `SortableItemBase` uses `actionButtons` prop for right-side buttons (not children)
-
-## Session Management
-
-- Timer state persists via Tauri settings (`active_session_id`, `active_session_project`, `active_session_start`)
-- `loadTimerSession` validates saved session exists in DB against `get_active_session()`
-- Multi-tab sync: storage event listener + `timer_session_changed` localStorage events
-
-## CI
-
-- `.github/workflows/ci.yml` runs: Rust tests, TypeScript check
-- Tauri system dependencies (`libwebkit2gtk-4.1-dev`, etc.) required on Linux
-- E2E tests commented out (browser installation fails in CI)
-
-## Version
-
-Current: v0.2.3 (defined in `src-tauri/tauri.conf.json`, read via `app.config().version`)
+- Follow existing code style and patterns
+- Write tests for new functionality
+- Keep changes focused and atomic
+- Document public APIs
+- Update this file when project conventions change

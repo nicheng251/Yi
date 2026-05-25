@@ -7,10 +7,14 @@ export function useDragReorder<T>({
   items,
   getId,
   onReorder,
+  onSuccess,
+  onError,
 }: {
   items: T[];
   getId: (item: T) => string;
   onReorder: (newItems: T[]) => void;
+  onSuccess?: () => void;
+  onError?: (error: unknown) => void;
 }) {
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -29,12 +33,13 @@ export function useDragReorder<T>({
       try {
         const projectIds = newItems.map((p) => getId(p));
         await invoke("reorder_projects", { projectIds });
+        onSuccess?.();
       } catch (e) {
         console.error("Failed to reorder projects:", e);
-        throw e;
+        onError?.(e);
       }
     },
-    [items, getId, onReorder]
+    [items, getId, onReorder, onSuccess, onError]
   );
 
   return handleDragEnd;

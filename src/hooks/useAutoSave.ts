@@ -22,15 +22,3 @@ export function useAutoSave({ isDirty, onSave }: UseAutoSaveOptions) {
 
   return saveRef;
 }
-
-export function useKeyboardShortcut(
-  key: string,
-  callback: () => void,
-  deps: React.DependencyList
-) {
-  useEffect(() => {
-    const handler = () => callback();
-    window.addEventListener(key, handler);
-    return () => window.removeEventListener(key, handler);
-  }, [key, callback, ...deps]);
-}

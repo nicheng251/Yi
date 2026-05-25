@@ -93,6 +93,8 @@ impl Database {
             CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_id);
             CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started_at);
             CREATE INDEX IF NOT EXISTS idx_daily_records_date ON daily_records(date);
+            CREATE INDEX IF NOT EXISTS idx_project_tags_tag ON project_tags(tag_id);
+            CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
             "
         )?;
 
@@ -101,26 +103,32 @@ impl Database {
     }
 
     pub fn get_projects(&self, include_archived: bool) -> Result<Vec<Project>> {
+        self.query_projects(if include_archived { None } else { Some(false) })
+    }
+
+    pub fn get_archived_projects(&self) -> Result<Vec<Project>> {
+        self.query_projects(Some(true))
+    }
+
+    fn query_projects(&self, is_archived_filter: Option<bool>) -> Result<Vec<Project>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
-        let sql = if include_archived {
-            "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes, GROUP_CONCAT(t.name, ',') as tag_names
-             FROM projects p
-             LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
-             LEFT JOIN project_tags pt ON p.id = pt.project_id
-             LEFT JOIN tags t ON pt.tag_id = t.id
-             GROUP BY p.id
-             ORDER BY p.display_order ASC"
-        } else {
-            "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes, GROUP_CONCAT(t.name, ',') as tag_names
-             FROM projects p
-             LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
-             LEFT JOIN project_tags pt ON p.id = pt.project_id
-             LEFT JOIN tags t ON pt.tag_id = t.id
-             WHERE p.is_archived = 0
-             GROUP BY p.id
-             ORDER BY p.display_order ASC"
+        let where_clause = match is_archived_filter {
+            None => String::new(),
+            Some(true) => "WHERE p.is_archived = 1".to_string(),
+            Some(false) => "WHERE p.is_archived = 0".to_string(),
         };
-        let mut stmt = conn.prepare(sql)?;
+        let sql = format!(
+            "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes, GROUP_CONCAT(t.name, ',') as tag_names
+             FROM projects p
+             LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
+             LEFT JOIN project_tags pt ON p.id = pt.project_id
+             LEFT JOIN tags t ON pt.tag_id = t.id
+             {}
+             GROUP BY p.id
+             ORDER BY p.display_order ASC",
+            where_clause
+        );
+        let mut stmt = conn.prepare(&sql)?;
 
         let project_iter = stmt.query_map([], |row| {
             let tag_names: Option<String> = row.get(9)?;
@@ -134,42 +142,6 @@ impl Database {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
                 is_archived: row.get::<_, i32>(5)? == 1,
-                sort_order: row.get(6)?,
-                tags,
-                display_order: row.get(7)?,
-                total_minutes: row.get(8)?,
-            })
-        })?;
-
-        let projects: Vec<Project> = project_iter.filter_map(|p| p.ok()).collect();
-        Ok(projects)
-    }
-
-    pub fn get_archived_projects(&self) -> Result<Vec<Project>> {
-        let conn = self.conn.lock().expect("Database lock poisoned");
-        let mut stmt = conn.prepare(
-            "SELECT p.id, p.name, p.category_id, p.created_at, p.updated_at, p.is_archived, p.sort_order, p.display_order, COALESCE(SUM(s.minutes), 0) as total_minutes, GROUP_CONCAT(t.name, ',') as tag_names
-             FROM projects p
-             LEFT JOIN sessions s ON p.id = s.project_id AND s.minutes IS NOT NULL
-             LEFT JOIN project_tags pt ON p.id = pt.project_id
-             LEFT JOIN tags t ON pt.tag_id = t.id
-             WHERE p.is_archived = 1
-             GROUP BY p.id
-             ORDER BY p.display_order ASC"
-        )?;
-
-        let project_iter = stmt.query_map([], |row| {
-            let tag_names: Option<String> = row.get(9)?;
-            let tags: Vec<String> = tag_names
-                .map(|s| s.split(',').filter(|t| !t.is_empty()).map(String::from).collect())
-                .unwrap_or_default();
-            Ok(Project {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                category_id: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
-                is_archived: true,
                 sort_order: row.get(6)?,
                 tags,
                 display_order: row.get(7)?,
@@ -381,36 +353,6 @@ impl Database {
         Ok(Category { id, name: name.to_string() })
     }
 
-    pub fn create_session(&self, project_id: &str) -> Result<Session> {
-        let conn = self.conn.lock().expect("Database lock poisoned");
-        
-        let exists: bool = conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM projects WHERE id = ?)",
-            [project_id],
-            |row| row.get(0),
-        )?;
-        
-        if !exists {
-            return Err(rusqlite::Error::InvalidQuery);
-        }
-        
-        let id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now().timestamp();
-
-        conn.execute(
-            "INSERT INTO sessions (id, project_id, started_at) VALUES (?, ?, ?)",
-            params![id, project_id, now],
-        )?;
-
-        Ok(Session {
-            id,
-            project_id: project_id.to_string(),
-            started_at: now,
-            ended_at: None,
-            minutes: None,
-        })
-    }
-
     pub fn end_session(&self, session_id: &str) -> Result<Option<i64>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let now = chrono::Utc::now().timestamp();
@@ -430,6 +372,70 @@ impl Database {
         )?;
 
         Ok(Some(minutes))
+    }
+
+    pub fn start_new_session(&self, project_id: &str) -> Result<Session> {
+        let conn = self.conn.lock().expect("Database lock poisoned");
+        let now = chrono::Utc::now().timestamp();
+
+        // Validate project exists
+        let exists: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM projects WHERE id = ?)",
+            [project_id],
+            |row| row.get(0),
+        )?;
+
+        if !exists {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
+
+        // Single transaction: end any active session, then create new one
+        conn.execute("BEGIN TRANSACTION", [])?;
+
+        // End any active session
+        let active_result: Result<Option<(String, i64)>> = (|| {
+            let mut stmt = conn.prepare(
+                "SELECT id, started_at FROM sessions WHERE ended_at IS NULL LIMIT 1"
+            )?;
+            let result = stmt.query_row([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            });
+            match result {
+                Ok((id, started_at)) => {
+                    let minutes = (now - started_at) / 60;
+                    let minutes = if minutes > 0 { minutes } else { 0 };
+                    conn.execute(
+                        "UPDATE sessions SET ended_at = ?, minutes = ? WHERE id = ?",
+                        params![now, minutes, id],
+                    )?;
+                    Ok(Some((id, minutes)))
+                }
+                Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+                Err(e) => Err(e),
+            }
+        })();
+
+        if let Err(e) = active_result {
+            conn.execute("ROLLBACK", [])?;
+            return Err(e);
+        }
+
+        // Create new session
+        let id = uuid::Uuid::new_v4().to_string();
+        conn.execute(
+            "INSERT INTO sessions (id, project_id, started_at) VALUES (?, ?, ?)",
+            params![id, project_id, now],
+        )?;
+
+        conn.execute("COMMIT", [])?;
+
+        Ok(Session {
+            id,
+            project_id: project_id.to_string(),
+            started_at: now,
+            ended_at: None,
+            minutes: None,
+        })
     }
 
     pub fn get_active_session(&self) -> Result<Option<Session>> {
@@ -481,7 +487,15 @@ impl Database {
     pub fn get_daily_records_for_month(&self, year: i32, month: i32) -> Result<Vec<DailyRecord>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let start_date = format!("{:04}-{:02}-01", year, month);
-        let end_date = format!("{:04}-{:02}-31", year, month);
+        let end_date = if month == 12 {
+            format!("{:04}-12-31", year)
+        } else {
+            // Last day of current month = day before first day of next month
+            let next_month = chrono::NaiveDate::from_ymd_opt(year, (month + 1) as u32, 1)
+                .unwrap_or_else(|| chrono::NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap());
+            let last_day = next_month.pred_opt().unwrap_or(next_month);
+            last_day.format("%Y-%m-%d").to_string()
+        };
 
         let mut stmt = conn.prepare(
             "SELECT id, date, content, created_at, updated_at FROM daily_records 
@@ -506,13 +520,13 @@ impl Database {
         let now = chrono::Utc::now().timestamp();
 
         let existing = conn.query_row(
-            "SELECT id FROM daily_records WHERE date = ?",
+            "SELECT id, created_at FROM daily_records WHERE date = ?",
             [date],
-            |row| row.get::<_, String>(0),
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
         );
 
         match existing {
-            Ok(id) => {
+            Ok((id, original_created_at)) => {
                 conn.execute(
                     "UPDATE daily_records SET content = ?, updated_at = ? WHERE id = ?",
                     params![content, now, id],
@@ -521,7 +535,7 @@ impl Database {
                     id,
                     date: date.to_string(),
                     content: Some(content.to_string()),
-                    created_at: now,
+                    created_at: original_created_at,
                     updated_at: now,
                 })
             }

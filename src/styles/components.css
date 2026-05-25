@@ -99,7 +99,7 @@
   border: 1px solid var(--border);
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  border-radius: 6;
+  border-radius: 8px;
   outline: none;
 }
 
@@ -194,7 +194,7 @@
   padding: 6px 12px;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
-  border-radius: 6;
+  border-radius: 8px;
 }
 
 .view-toggle.active {
@@ -331,6 +331,16 @@
   transform: translateX(24px);
 }
 
+/* Select */
+.select {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
 /* Page Layout */
 .page {
   padding: 24px;
@@ -349,6 +359,16 @@
 .page-content {
   flex: 1;
   overflow: auto;
+}
+
+/* Card Inline */
+.card-row {
+  padding: 16px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 /* List */
