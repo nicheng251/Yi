@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+env:
+  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -22,9 +26,38 @@ jobs:
       - name: Build
         run: npm install && npm run tauri build
 
+      - name: Generate update manifest
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          SIGNATURE_FILE=$(ls src-tauri/target/release/bundle/msi/*.sig 2>/dev/null | head -1)
+          MSI_FILE=$(ls src-tauri/target/release/bundle/msi/*.msi 2>/dev/null | head -1)
+          MSI_NAME=$(basename "$MSI_FILE")
+          SIGNATURE=$(cat "$SIGNATURE_FILE" 2>/dev/null || echo "")
+          RELEASE_URL="https://github.com/nicheng251/Yi/releases/download/${GITHUB_REF_NAME}/${MSI_NAME}"
+
+          cat > latest.json << EOF
+          {
+            "version": "${VERSION}",
+            "notes": "Release ${GITHUB_REF_NAME}",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "${SIGNATURE}",
+                "url": "${RELEASE_URL}"
+              }
+            }
+          }
+          EOF
+          echo "Generated update manifest:"
+          cat latest.json
+
       - name: Upload
         uses: softprops/action-gh-release@v1
         with:
-          files: src-tauri/target/release/bundle/msi/*.msi
+          files: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/msi/*.sig
+            latest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -55,3 +55,5 @@ export interface DailyFocus {
   totalMinutes: number;
   projects: { name: string; minutes: number }[];
 }
+
+export type ViewMode = "day" | "week" | "month" | "year";

@@ -105,22 +105,13 @@ export default function Settings() {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 600 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 32 }}>设置</h1>
+    <div className="settings-section">
+      <h1 className="section-title">设置</h1>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <div>
           <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>外观</h2>
-          <div
-            style={{
-              padding: 16,
-              backgroundColor: "var(--bg-secondary)",
-              borderRadius: 8,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          <div className="flex-between stat-card">
             <span>深色模式</span>
             <Toggle checked={theme === "dark"} onChange={(checked) => setTheme(checked ? "dark" : "light")} />
           </div>
@@ -128,16 +119,7 @@ export default function Settings() {
 
         <div>
           <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>系统</h2>
-          <div
-            style={{
-              padding: 16,
-              backgroundColor: "var(--bg-secondary)",
-              borderRadius: 8,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          <div className="flex-between stat-card">
             <span>开机自启动</span>
             <Toggle checked={autostart} onChange={handleAutostartToggle} />
           </div>
@@ -145,29 +127,11 @@ export default function Settings() {
 
         <div>
           <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>数据</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <button
-              onClick={handleExport}
-              style={{
-                padding: 12,
-                backgroundColor: "var(--bg-secondary)",
-                borderRadius: 8,
-                textAlign: "left",
-                color: "var(--text-primary)",
-              }}
-            >
+          <div className="list">
+            <button onClick={handleExport} className="list-item" style={{ textAlign: "left" }}>
               导出数据 (JSON)
             </button>
-            <button
-              onClick={handleImport}
-              style={{
-                padding: 12,
-                backgroundColor: "var(--bg-secondary)",
-                borderRadius: 8,
-                textAlign: "left",
-                color: "var(--text-primary)",
-              }}
-            >
+            <button onClick={handleImport} className="list-item" style={{ textAlign: "left" }}>
               导入数据 (JSON)
             </button>
           </div>
@@ -175,18 +139,12 @@ export default function Settings() {
 
         <div>
           <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>关于</h2>
-          <div
-            style={{
-              padding: 16,
-              backgroundColor: "var(--bg-secondary)",
-              borderRadius: 8,
-            }}
-          >
+          <div className="stat-card" style={{ flexDirection: "column", alignItems: "flex-start" }}>
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontWeight: 500 }}>Yi</span>
               <span style={{ color: "var(--text-secondary)", marginLeft: 8 }}>{version ? `v${version}` : ""}</span>
             </div>
-            <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 12 }}>
+            <div className="text-secondary" style={{ fontSize: 12, marginBottom: 12 }}>
               专注生产力工具
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

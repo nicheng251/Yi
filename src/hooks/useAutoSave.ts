@@ -6,31 +6,32 @@ interface UseAutoSaveOptions {
 }
 
 export function useAutoSave({ isDirty, onSave }: UseAutoSaveOptions) {
-  const saveRef = useRef(onSave);
-  saveRef.current = onSave;
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
+
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+
+  const saveRef = useRef(async () => {
+    if (!isDirtyRef.current) return;
+    try {
+      await onSaveRef.current();
+    } catch (e) {
+      console.error("Auto-save failed:", e);
+    }
+  });
 
   useEffect(() => {
-    saveRef.current = async () => {
-      if (!isDirty) return;
+    const doSave = async () => {
+      if (!isDirtyRef.current) return;
       try {
-        await onSave();
+        await onSaveRef.current();
       } catch (e) {
         console.error("Auto-save failed:", e);
       }
     };
+    saveRef.current = doSave;
   }, [isDirty, onSave]);
 
   return saveRef;
-}
-
-export function useKeyboardShortcut(
-  key: string,
-  callback: () => void,
-  deps: React.DependencyList
-) {
-  useEffect(() => {
-    const handler = () => callback();
-    window.addEventListener(key, handler);
-    return () => window.removeEventListener(key, handler);
-  }, [key, callback, ...deps]);
 }

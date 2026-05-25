@@ -10,6 +10,8 @@
   --border: #e0e0e0;
   --danger: #dc2626;
   --danger-hover: #b91c1c;
+  --success: #22c55e;
+  --success-hover: #16a34a;
 }
 
 [data-theme="dark"] {
@@ -24,6 +26,8 @@
   --border: #404040;
   --danger: #ef4444;
   --danger-hover: #f87171;
+  --success: #22c55e;
+  --success-hover: #3ce07a;
 }
 
 * {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { format, subDays, addDays } from "date-fns";
 import { CommandResponse, DailyRecord } from "../types";
@@ -21,33 +21,29 @@ export default function Results() {
   const { saveTimerSession } = useTimerStore();
   const { showToast } = useToast();
 
-  const recordsRef = useRef(records);
-  recordsRef.current = records;
-
-  const autoSaveRef = useRef<() => Promise<void>>(async () => {});
-
-  useEffect(() => {
-    autoSaveRef.current = async () => {
-      if (!isDirty) return;
-      const dateStr = format(currentDate, "yyyy-MM-dd");
-      try {
-        const res = (await invoke("save_daily_record", {
-          date: dateStr,
-          content: editingContent,
-        })) as CommandResponse<DailyRecord>;
-        if (res.success && res.data) {
-          setOriginalContent(editingContent);
-          setIsDirty(false);
-          if (viewMode === 'month') {
-            const newRecords = new Map(recordsRef.current);
-            newRecords.set(dateStr, res.data);
-            setRecords(newRecords);
-          }
+  const autoSave = useCallback(async () => {
+    if (!isDirty) return;
+    const dateStr = format(currentDate, "yyyy-MM-dd");
+    try {
+      const res = (await invoke("save_daily_record", {
+        date: dateStr,
+        content: editingContent,
+      })) as CommandResponse<DailyRecord>;
+      if (res.success && res.data) {
+        const savedRecord: DailyRecord = res.data;
+        setOriginalContent(editingContent);
+        setIsDirty(false);
+        if (viewMode === 'month') {
+          setRecords((prev) => {
+            const next = new Map(prev);
+            next.set(dateStr, savedRecord);
+            return next;
+          });
         }
-      } catch (e) {
-        console.error("Auto-save failed:", e);
       }
-    };
+    } catch (e) {
+      console.error("Auto-save failed:", e);
+    }
   }, [isDirty, currentDate, editingContent, viewMode]);
 
   useEffect(() => {
@@ -57,52 +53,31 @@ export default function Results() {
   }, [viewMode, currentDate]);
 
   useEffect(() => {
-    if (viewMode === 'month' && isDirty) {
-      autoSaveRef.current();
-    }
-  }, [viewMode, isDirty, autoSaveRef]);
-
-  useEffect(() => {
     if (editingContent !== originalContent) {
       setIsDirty(true);
     }
   }, [editingContent, originalContent]);
 
+  // Auto-save before unmount
   useEffect(() => {
     return () => {
-      autoSaveRef.current();
+      autoSave();
     };
-  }, []);
+  }, [autoSave]);
 
+  // Auto-save on quit
   useEffect(() => {
     const handleQuit = async () => {
       try {
-        await Promise.all([
-          autoSaveRef.current(),
-          saveTimerSession(),
-        ]);
+        await Promise.all([autoSave(), saveTimerSession()]);
       } catch (e) {
         console.error("Save failed on quit:", e);
       }
       invoke("quit_app");
     };
     window.addEventListener("tauri-quit", handleQuit);
-    return () => {
-      window.removeEventListener("tauri-quit", handleQuit);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleCtrlS = () => {
-      console.log('ctrl-s-pressed event received, viewMode:', viewMode);
-      if (viewMode === 'day') {
-        console.log('Calling autoSaveRef.current()');
-        autoSaveRef.current();
-      }
-    };
-    window.addEventListener('ctrl-s-pressed', handleCtrlS);
-    return () => window.removeEventListener('ctrl-s-pressed', handleCtrlS);
-  }, [viewMode]);
+    return () => window.removeEventListener("tauri-quit", handleQuit);
+  }, [autoSave, saveTimerSession]);
 
   useEffect(() => {
     if (viewMode === 'month') {
@@ -148,29 +123,6 @@ export default function Results() {
     }
   }
 
-  async function autoSaveRecord() {
-    if (!isDirty) return;
-    const dateStr = format(currentDate, "yyyy-MM-dd");
-    try {
-      const res = (await invoke("save_daily_record", {
-        date: dateStr,
-        content: editingContent,
-      })) as CommandResponse<DailyRecord>;
-      if (res.success && res.data) {
-        setOriginalContent(editingContent);
-        setIsDirty(false);
-        if (viewMode === 'month') {
-          const newRecords = new Map(records);
-          newRecords.set(dateStr, res.data);
-          setRecords(newRecords);
-        }
-      }
-    } catch (e) {
-      console.error("Auto-save failed:", e);
-      showToast("保存失败", "error");
-    }
-  }
-
   async function handleSearch() {
     if (!searchQuery.trim()) return;
     try {
@@ -185,68 +137,52 @@ export default function Results() {
   }
 
   const handleDateClick = (day: Date) => {
-    autoSaveRecord().then(() => {
+    autoSave().then(() => {
       setCurrentDate(day);
       setViewMode('day');
     });
   };
 
   const handleGoToToday = () => {
-    autoSaveRecord().then(() => {
+    autoSave().then(() => {
       setCurrentDate(new Date());
       setViewMode('day');
     });
   };
 
   const handleSetViewMode = (mode: 'month' | 'day') => {
-    autoSaveRecord().then(() => {
+    autoSave().then(() => {
       setViewMode(mode);
     });
   };
 
   return (
-    <div style={{ padding: 24, height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 600 }}>成果记录</h1>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+    <div className="page">
+      <div className="page-header">
+        <h1 className="section-title" style={{ marginBottom: 0 }}>成果记录</h1>
+        <div className="flex-row" style={{ gap: 8 }}>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder="搜索成果..."
-            style={{
-              padding: "8px 12px",
-              borderRadius: 6,
-              border: "1px solid var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-              width: 200,
-            }}
+            className="input"
+            style={{ width: 200 }}
           />
-          <button onClick={handleSearch} style={{ padding: "8px 16px", backgroundColor: "var(--accent)", color: "white", borderRadius: 6 }}>
+          <button onClick={handleSearch} className="btn-primary">
             搜索
           </button>
           <div style={{ width: 1, height: 24, backgroundColor: "var(--border)", margin: "0 8px" }} />
           <button
             onClick={() => handleSetViewMode('day')}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: viewMode === 'day' ? "var(--accent)" : "var(--bg-secondary)",
-              color: viewMode === 'day' ? "white" : "var(--text-primary)",
-              borderRadius: 6,
-            }}
+            className={viewMode === 'day' ? 'toggle-btn active' : 'toggle-btn'}
           >
             日视图
           </button>
           <button
             onClick={() => handleSetViewMode('month')}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: viewMode === 'month' ? "var(--accent)" : "var(--bg-secondary)",
-              color: viewMode === 'month' ? "white" : "var(--text-primary)",
-              borderRadius: 6,
-            }}
+            className={viewMode === 'month' ? 'toggle-btn active' : 'toggle-btn'}
           >
             月视图
           </button>
@@ -268,9 +204,9 @@ export default function Results() {
           currentDate={currentDate}
           editingContent={editingContent}
           onContentChange={setEditingContent}
-          onDateNavigate={(dir) => autoSaveRecord().then(() => setCurrentDate(d => dir === "prev" ? subDays(d, 1) : addDays(d, 1)))}
+          onDateNavigate={(dir) => autoSave().then(() => setCurrentDate(d => dir === "prev" ? subDays(d, 1) : addDays(d, 1)))}
           onGoToToday={handleGoToToday}
-          onCtrlS={() => autoSaveRef.current()}
+          onCtrlS={() => autoSave()}
         />
       )}
     </div>

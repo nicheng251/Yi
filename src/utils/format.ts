@@ -8,11 +8,3 @@ export function formatMinutes(minutes: number): string {
   return `${hours} 小时 ${mins} 分钟`;
 }
 
-export function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("zh-CN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}

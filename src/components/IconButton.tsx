@@ -33,13 +33,13 @@ export function IconButton({ onClick, icon }: IconButtonProps) {
       }}
     >
       {icon === "play" ? (
-        <svg width="16" height="18" viewBox="0 0 16 18" fill="#22c55e">
+        <svg width="16" height="18" viewBox="0 0 16 18" fill="var(--success)">
           <path d="M0 0L16 9L0 18V0Z" />
         </svg>
       ) : (
         <svg width="14" height="14" viewBox="0 0 14 14">
-          <rect x="1" y="0" width="4" height="14" fill="#dc2626" />
-          <rect x="9" y="0" width="4" height="14" fill="#dc2626" />
+          <rect x="1" y="0" width="4" height="14" fill="var(--danger)" />
+          <rect x="9" y="0" width="4" height="14" fill="var(--danger)" />
         </svg>
       )}
     </button>

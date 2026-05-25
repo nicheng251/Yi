@@ -48,6 +48,19 @@ impl<T> CommandResponse<T> {
     }
 }
 
+/// Macro: unwrap DB state from State + lock, then call `$body`.
+/// Converts `Ok(data)` → `CommandResponse::ok(data)`, `Err(e)` → `CommandResponse::err(e)`.
+macro_rules! with_db {
+    ($state:expr, |$db:ident| $body:expr) => {{
+        let db_guard = $state.db.lock().map_err(|e| e.to_string())?;
+        let $db = db_guard.as_ref().ok_or("Database not initialized")?;
+        match $body {
+            Ok(data) => Ok(CommandResponse::ok(data)),
+            Err(e) => Ok(CommandResponse::err(&e.to_string())),
+        }
+    }};
+}
+
 fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let show_item = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
@@ -92,22 +105,12 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
 #[tauri::command]
 fn get_projects(state: State<AppState>) -> Result<CommandResponse<Vec<db::Project>>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.get_projects(false) {
-        Ok(projects) => Ok(CommandResponse::ok(projects)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.get_projects(false))
 }
 
 #[tauri::command]
 fn get_archived_projects(state: State<AppState>) -> Result<CommandResponse<Vec<db::Project>>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.get_archived_projects() {
-        Ok(projects) => Ok(CommandResponse::ok(projects)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.get_archived_projects())
 }
 
 #[tauri::command]
@@ -128,199 +131,97 @@ fn create_project(name: String, category_id: Option<String>, tags: Vec<String>, 
 
 #[tauri::command]
 fn reorder_projects(project_ids: Vec<String>, state: State<AppState>) -> Result<CommandResponse<()>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.reorder_projects(&project_ids) {
-        Ok(_) => Ok(CommandResponse::ok(())),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.reorder_projects(&project_ids))
 }
 
 #[tauri::command]
 fn update_project(id: String, name: String, category_id: Option<String>, tags: Vec<String>, state: State<AppState>) -> Result<CommandResponse<()>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.update_project(&id, &name, category_id.as_deref(), tags) {
-        Ok(_) => Ok(CommandResponse::ok(())),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.update_project(&id, &name, category_id.as_deref(), tags))
 }
 
 #[tauri::command]
 fn archive_project(id: String, state: State<AppState>) -> Result<CommandResponse<()>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.archive_project(&id) {
-        Ok(_) => Ok(CommandResponse::ok(())),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.archive_project(&id))
 }
 
 #[tauri::command]
 fn unarchive_project(id: String, state: State<AppState>) -> Result<CommandResponse<()>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.unarchive_project(&id) {
-        Ok(_) => Ok(CommandResponse::ok(())),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.unarchive_project(&id))
 }
 
 #[tauri::command]
 fn delete_project(id: String, state: State<AppState>) -> Result<CommandResponse<()>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.delete_project(&id) {
-        Ok(_) => Ok(CommandResponse::ok(())),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.delete_project(&id))
 }
 
 #[tauri::command]
 fn get_categories(state: State<AppState>) -> Result<CommandResponse<Vec<db::Category>>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.get_categories() {
-        Ok(categories) => Ok(CommandResponse::ok(categories)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.get_categories())
 }
 
 #[tauri::command]
 fn create_category(name: String, state: State<AppState>) -> Result<CommandResponse<db::Category>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.create_category(&name) {
-        Ok(category) => Ok(CommandResponse::ok(category)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.create_category(&name))
 }
 
 #[tauri::command]
 fn start_session(project_id: String, state: State<AppState>) -> Result<CommandResponse<db::Session>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-
-    let previous_session = db.get_active_session().ok().flatten();
-
-    if let Some(ref active) = previous_session {
-        db.end_session(&active.id).ok();
-    }
-
-    match db.create_session(&project_id) {
-        Ok(session) => Ok(CommandResponse::ok(session)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.start_new_session(&project_id))
 }
 
 #[tauri::command]
 fn end_session(session_id: String, state: State<AppState>) -> Result<CommandResponse<Option<i64>>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.end_session(&session_id) {
-        Ok(minutes) => Ok(CommandResponse::ok(minutes)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.end_session(&session_id))
 }
 
 #[tauri::command]
 fn get_active_session(state: State<AppState>) -> Result<CommandResponse<Option<db::Session>>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.get_active_session() {
-        Ok(session) => Ok(CommandResponse::ok(session)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.get_active_session())
 }
 
 #[tauri::command]
 fn get_daily_record(date: String, state: State<AppState>) -> Result<CommandResponse<Option<db::DailyRecord>>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.get_daily_record(&date) {
-        Ok(record) => Ok(CommandResponse::ok(record)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.get_daily_record(&date))
 }
 
 #[tauri::command]
 fn get_daily_records_for_month(year: i32, month: i32, state: State<AppState>) -> Result<CommandResponse<Vec<db::DailyRecord>>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.get_daily_records_for_month(year, month) {
-        Ok(records) => Ok(CommandResponse::ok(records)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.get_daily_records_for_month(year, month))
 }
 
 #[tauri::command]
 fn save_daily_record(date: String, content: String, state: State<AppState>) -> Result<CommandResponse<db::DailyRecord>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.create_or_update_daily_record(&date, &content) {
-        Ok(record) => Ok(CommandResponse::ok(record)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.create_or_update_daily_record(&date, &content))
 }
 
 #[tauri::command]
 fn search_records(query: String, state: State<AppState>) -> Result<CommandResponse<Vec<db::DailyRecord>>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.search_daily_records(&query) {
-        Ok(records) => Ok(CommandResponse::ok(records)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.search_daily_records(&query))
 }
 
 #[tauri::command]
-fn get_statistics(start_date: String, end_date: String, state: State<AppState>) -> Result<CommandResponse<Vec<db::ProjectStat>>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.get_statistics(&start_date, &end_date) {
-        Ok(stats) => Ok(CommandResponse::ok(stats)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+fn get_statistics(start_date: i64, end_date: i64, state: State<AppState>) -> Result<CommandResponse<Vec<db::ProjectStat>>, String> {
+    with_db!(state, |db| db.get_statistics(start_date, end_date))
 }
 
 #[tauri::command]
 fn get_project_total_minutes(project_id: String, state: State<AppState>) -> Result<CommandResponse<i64>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.get_project_total_minutes(&project_id) {
-        Ok(minutes) => Ok(CommandResponse::ok(minutes)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.get_project_total_minutes(&project_id))
 }
 
 #[tauri::command]
 fn get_monthly_sessions(year: i32, month: i32, state: State<AppState>) -> Result<CommandResponse<Vec<db::DailySessionStat>>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.get_monthly_sessions(year, month) {
-        Ok(stats) => Ok(CommandResponse::ok(stats)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.get_monthly_sessions(year, month))
 }
 
 #[tauri::command]
 fn get_setting(key: String, state: State<AppState>) -> Result<CommandResponse<Option<String>>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.get_setting(&key) {
-        Ok(value) => Ok(CommandResponse::ok(value)),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.get_setting(&key))
 }
 
 #[tauri::command]
 fn set_setting(key: String, value: String, state: State<AppState>) -> Result<CommandResponse<()>, String> {
-    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    match db.set_setting(&key, &value) {
-        Ok(_) => Ok(CommandResponse::ok(())),
-        Err(e) => Ok(CommandResponse::err(&e.to_string())),
-    }
+    with_db!(state, |db| db.set_setting(&key, &value))
 }
 
 #[tauri::command]

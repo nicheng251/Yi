@@ -8,3 +8,5 @@ src-tauri/target/
 .env.local
 src-tauri/keys
 src-tauri/keys.pub
+.codewhale/
+.deepseek/

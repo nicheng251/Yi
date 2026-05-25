@@ -86,11 +86,11 @@
 }
 
 .btn-icon-primary {
-  background-color: #22c55e;
+  background-color: var(--success);
 }
 
 .btn-icon-danger {
-  background-color: #dc2626;
+  background-color: var(--danger);
 }
 
 /* Form Elements */
@@ -99,7 +99,7 @@
   border: 1px solid var(--border);
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  border-radius: 6;
+  border-radius: 8px;
   outline: none;
 }
 
@@ -159,6 +159,25 @@
   gap: 8px;
 }
 
+.gap-12 {
+  gap: 12px;
+}
+
+.gap-24 {
+  gap: 24px;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll-content {
+  flex: 1;
+  overflow: auto;
+  padding: 0 24px 24px 24px;
+}
+
 /* Icon Button (drag handle) */
 .drag-handle {
   cursor: grab;
@@ -172,6 +191,29 @@
 .empty-state {
   text-align: center;
   padding: 48px;
+  color: var(--text-secondary);
+}
+
+/* Rank Badge (statistics ranking) */
+.rank-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.rank-badge.top {
+  background-color: var(--accent);
+  color: white;
+}
+
+.rank-badge:not(.top) {
+  background-color: var(--bg-tertiary);
   color: var(--text-secondary);
 }
 
@@ -194,7 +236,7 @@
   padding: 6px 12px;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
-  border-radius: 6;
+  border-radius: 8px;
 }
 
 .view-toggle.active {
@@ -331,6 +373,16 @@
   transform: translateX(24px);
 }
 
+/* Select */
+.select {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
 /* Page Layout */
 .page {
   padding: 24px;
@@ -349,6 +401,16 @@
 .page-content {
   flex: 1;
   overflow: auto;
+}
+
+/* Card Inline */
+.card-row {
+  padding: 16px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 /* List */

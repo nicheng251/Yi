@@ -12,7 +12,7 @@ import {
 import { useSortableSensors } from "../hooks/useSortableSensors";
 import { SortableArchiveItem } from "../components/SortableArchiveItem";
 import { useToast } from "../components/Toast";
-import { reorderItems, saveReorder } from "../hooks/useReorder";
+import { useDragReorder } from "../hooks/useDragReorder";
 
 export default function Archive() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -41,6 +41,7 @@ export default function Archive() {
       const res = (await invoke("unarchive_project", { id: projectId })) as CommandResponse<null>;
       if (res.success) {
         loadArchivedProjects();
+        showToast("项目已恢复", "success");
       }
     } catch (e) {
       console.error("Failed to unarchive project:", e);
@@ -54,6 +55,7 @@ export default function Archive() {
       const res = (await invoke("delete_project", { id: projectId })) as CommandResponse<null>;
       if (res.success) {
         loadArchivedProjects();
+        showToast("项目已永久删除", "success");
       }
     } catch (e) {
       console.error("Failed to delete project:", e);
@@ -61,30 +63,20 @@ export default function Archive() {
     }
   }
 
-  async function handleDragEnd(event: any) {
-    const reordered = reorderItems({
-      items: projects,
-      activeId: event.active.id,
-      overId: event.over.id,
-      onReorder: setProjects,
-      getId: (p) => p.id,
-    });
-
-    if (reordered) {
-      const success = await saveReorder(projects, (p) => p.id);
-      if (!success) {
-        showToast("排序保存失败", "error");
-      }
-    }
-  }
+  const handleDragEnd = useDragReorder({
+    items: projects,
+    getId: (p) => p.id,
+    onReorder: setProjects,
+    onError: () => showToast("排序保存失败", "error"),
+  });
 
   return (
-    <div style={{ padding: 24, height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 600 }}>归档</h1>
+    <div className="page">
+      <h1 className="section-title">归档</h1>
 
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div className="page-content">
         {projects.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 48, color: "var(--text-secondary)" }}>
+          <div className="empty-state">
             暂无归档的项目
           </div>
         ) : (
@@ -94,7 +86,7 @@ export default function Archive() {
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={projects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="list">
                 {projects.map((project) => (
                   <SortableArchiveItem
                     key={project.id}

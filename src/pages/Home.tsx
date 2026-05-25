@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTimerStore } from "../store/timer";
-import { useProjectStore } from "../store/projects";
 import { CommandResponse, Project, Session } from "../types";
 import { SortableProjectItem } from "../components/SortableProjectItem";
 import { StatsBar } from "../components/StatsBar";
@@ -9,14 +8,13 @@ import { useToast } from "../components/Toast";
 import {
   DndContext,
   closestCenter,
-  DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useSortableSensors } from "../hooks/useSortableSensors";
+import { useDragReorder } from "../hooks/useDragReorder";
 
 type SortOrder = "created" | "updated" | "name" | "minutes" | "last_active" | "custom";
 
@@ -28,7 +26,6 @@ export default function Home() {
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const { activeSession, setActiveSession, clearActiveSession } = useTimerStore();
-  const { refreshProjects } = useProjectStore();
   const { showToast } = useToast();
 
   const sensors = useSortableSensors();
@@ -95,7 +92,6 @@ export default function Home() {
         setNewProjectName("");
         setShowNewProject(false);
         loadProjects();
-        refreshProjects();
       } else {
         console.error("Create project failed:", res.error);
         showToast("创建失败: " + (res.error || "未知错误"), "error");
@@ -141,7 +137,6 @@ export default function Home() {
           clearActiveSession();
         }
         loadProjects();
-        refreshProjects();
         showToast("项目已归档", "success");
       }
     } catch (e) {
@@ -156,7 +151,6 @@ export default function Home() {
       const res = (await invoke("delete_project", { id: projectId })) as CommandResponse<null>;
       if (res.success) {
         loadProjects();
-        refreshProjects();
         showToast("项目已删除", "success");
       }
     } catch (e) {
@@ -165,46 +159,32 @@ export default function Home() {
     }
   }
 
-  async function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      const oldIndex = sortedProjects.findIndex((p) => p.id === active.id);
-      const newIndex = sortedProjects.findIndex((p) => p.id === over.id);
-
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newSortedProjects = arrayMove(sortedProjects, oldIndex, newIndex);
-
-        const updatedProjects = newSortedProjects.map((p, idx) => ({
-          ...p,
-          display_order: idx,
-        }));
-
-        pendingSortOrder.current = "custom";
-        setProjects(updatedProjects);
-        setSortOrder("custom");
-        saveSortOrder("custom");
-        setSortKey(k => k + 1);
-
-        try {
-          const projectIds = newSortedProjects.map((p) => p.id);
-          await invoke("reorder_projects", { projectIds });
-        } catch (e) {
-          console.error("Failed to reorder projects:", e);
-          refreshProjects();
-          showToast("排序保存失败", "error");
-        }
-      }
-    }
-  }
-
   const sortedProjects = sortProjects(projects, sortOrder, sortKey);
 
+  const handleDragEnd = useDragReorder({
+    items: sortedProjects,
+    getId: (p) => p.id,
+    onReorder: (newItems) => {
+      const updatedProjects = newItems.map((p, idx) => ({ ...p, display_order: idx }));
+      pendingSortOrder.current = "custom";
+      setProjects(updatedProjects);
+    },
+    onSuccess: () => {
+      setSortOrder("custom");
+      saveSortOrder("custom");
+      setSortKey((k) => k + 1);
+    },
+    onError: () => {
+      loadProjects();
+      showToast("排序保存失败", "error");
+    },
+  });
+
   return (
-    <div style={{ padding: 24, height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 600 }}>项目列表</h1>
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+    <div className="page">
+      <div className="page-header">
+        <h1 className="section-title" style={{ marginBottom: 0 }}>项目列表</h1>
+        <div className="flex-row">
           <StatsBar />
           <select
             value={sortOrder}
@@ -214,13 +194,7 @@ export default function Home() {
               setSortOrder(value);
               saveSortOrder(value);
             }}
-            style={{
-              padding: "6px 12px",
-              borderRadius: 6,
-              border: "1px solid var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-            }}
+            className="select"
           >
             <option value="created">创建时间</option>
             <option value="updated">最近活动时间</option>
@@ -228,32 +202,14 @@ export default function Home() {
             <option value="minutes">累计时长</option>
             <option value="custom">自定义</option>
           </select>
-          <button
-            onClick={() => setShowNewProject(true)}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "var(--accent)",
-              color: "white",
-              borderRadius: 6,
-              fontWeight: 500,
-            }}
-          >
+          <button onClick={() => setShowNewProject(true)} className="btn-primary">
             新建项目
           </button>
         </div>
       </div>
 
       {showNewProject && (
-        <div
-          style={{
-            padding: 16,
-            backgroundColor: "var(--bg-secondary)",
-            borderRadius: 8,
-            display: "flex",
-            gap: 12,
-            alignItems: "center",
-          }}
-        >
+        <div className="card-row">
           <input
             type="text"
             value={newProjectName}
@@ -261,33 +217,24 @@ export default function Home() {
             placeholder="输入项目名称"
             autoFocus
             onKeyDown={(e) => e.key === "Enter" && handleCreateProject()}
-            style={{
-              flex: 1,
-              padding: "8px 12px",
-              borderRadius: 6,
-              border: "1px solid var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-            }}
+            className="input"
+            style={{ flex: 1 }}
           />
-          <button onClick={handleCreateProject} style={{ padding: "8px 16px", backgroundColor: "var(--accent)", color: "white", borderRadius: 6 }}>
+          <button onClick={handleCreateProject} className="btn-primary">
             创建
           </button>
-          <button
-            onClick={() => {
+          <button className="btn" onClick={() => {
               setShowNewProject(false);
               setNewProjectName("");
-            }}
-            style={{ padding: "8px 16px", backgroundColor: "var(--bg-tertiary)", color: "var(--text-secondary)", borderRadius: 6 }}
-          >
+            }}>
             取消
           </button>
         </div>
       )}
 
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div className="page-content">
         {sortedProjects.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 48, color: "var(--text-secondary)" }}>
+          <div className="empty-state">
             暂无项目，点击"新建项目"开始
           </div>
         ) : (
@@ -297,7 +244,7 @@ export default function Home() {
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={sortedProjects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="list">
                 {sortedProjects.map((project) => {
                   const isRunning = activeSession?.project_id === project.id;
                   return (
