@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, getDaysInMonth, subDays, addDays, isSameDay } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import { format, subDays, addDays } from "date-fns";
 import { CommandResponse, DailyRecord } from "../types";
 import { useTimerStore } from "../store/timer";
+import { ResultsCalendar } from "../components/ResultsCalendar";
+import { DayEditor } from "../components/DayEditor";
+import { SearchResults } from "../components/SearchResults";
+import { useToast } from "../components/Toast";
 
 export default function Results() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -16,8 +19,12 @@ export default function Results() {
   const [searchResults, setSearchResults] = useState<DailyRecord[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const { saveTimerSession } = useTimerStore();
+  const { showToast } = useToast();
 
-const autoSaveRef = useRef<() => Promise<void>>(async () => {});
+  const recordsRef = useRef(records);
+  recordsRef.current = records;
+
+  const autoSaveRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     autoSaveRef.current = async () => {
@@ -32,7 +39,7 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
           setOriginalContent(editingContent);
           setIsDirty(false);
           if (viewMode === 'month') {
-            const newRecords = new Map(records);
+            const newRecords = new Map(recordsRef.current);
             newRecords.set(dateStr, res.data);
             setRecords(newRecords);
           }
@@ -41,7 +48,7 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
         console.error("Auto-save failed:", e);
       }
     };
-  }, [isDirty, currentDate, editingContent, viewMode, records]);
+  }, [isDirty, currentDate, editingContent, viewMode]);
 
   useEffect(() => {
     if (viewMode === 'day') {
@@ -53,7 +60,7 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
     if (viewMode === 'month' && isDirty) {
       autoSaveRef.current();
     }
-  }, [viewMode, isDirty]);
+  }, [viewMode, isDirty, autoSaveRef]);
 
   useEffect(() => {
     if (editingContent !== originalContent) {
@@ -68,13 +75,16 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
   }, []);
 
   useEffect(() => {
-    const handleQuit = () => {
-      Promise.all([
-        autoSaveRef.current(),
-        saveTimerSession(),
-      ]).then(() => {
-        invoke("quit_app");
-      });
+    const handleQuit = async () => {
+      try {
+        await Promise.all([
+          autoSaveRef.current(),
+          saveTimerSession(),
+        ]);
+      } catch (e) {
+        console.error("Save failed on quit:", e);
+      }
+      invoke("quit_app");
     };
     window.addEventListener("tauri-quit", handleQuit);
     return () => {
@@ -102,24 +112,21 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
 
   async function loadMonthRecords() {
     try {
-      const daysInMonth = getDaysInMonth(currentMonth);
-      const newRecords = new Map<string, DailyRecord>();
+      const res = (await invoke("get_daily_records_for_month", {
+        year: currentMonth.getFullYear(),
+        month: currentMonth.getMonth() + 1,
+      })) as CommandResponse<DailyRecord[]>;
 
-      for (let d = 1; d <= daysInMonth; d++) {
-        const date = format(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d), "yyyy-MM-dd");
-        try {
-          const res = (await invoke("get_daily_record", { date })) as CommandResponse<DailyRecord | null>;
-          if (res.success && res.data) {
-            newRecords.set(date, res.data);
-          }
-        } catch (e) {
-          console.error(`Failed to load record for ${date}:`, e);
+      const newRecords = new Map<string, DailyRecord>();
+      if (res.success && res.data) {
+        for (const record of res.data) {
+          newRecords.set(record.date, record);
         }
       }
-
       setRecords(newRecords);
     } catch (e) {
       console.error("Failed to load records:", e);
+      showToast("加载记录失败", "error");
     }
   }
 
@@ -137,6 +144,7 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
       setIsDirty(false);
     } catch (e) {
       console.error("Failed to load record:", e);
+      showToast("加载记录失败", "error");
     }
   }
 
@@ -159,6 +167,7 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
       }
     } catch (e) {
       console.error("Auto-save failed:", e);
+      showToast("保存失败", "error");
     }
   }
 
@@ -171,15 +180,9 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
       }
     } catch (e) {
       console.error("Failed to search:", e);
+      showToast("搜索失败", "error");
     }
   }
-
-  const days = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth),
-  });
-
-  const firstDayOfWeek = startOfMonth(currentMonth).getDay();
 
   const handleDateClick = (day: Date) => {
     autoSaveRecord().then(() => {
@@ -251,130 +254,24 @@ const autoSaveRef = useRef<() => Promise<void>>(async () => {});
       </div>
 
       {searchResults.length > 0 ? (
-        <div style={{ flex: 1, overflow: "auto" }}>
-          <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ color: "var(--text-secondary)" }}>搜索结果: {searchResults.length} 条</span>
-            <button onClick={() => { setSearchResults([]); setSearchQuery(""); }} style={{ padding: "4px 12px", backgroundColor: "var(--bg-tertiary)", color: "var(--text-secondary)", borderRadius: 4 }}>
-              清除搜索
-            </button>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {searchResults.map((record) => (
-              <div key={record.id} style={{ padding: 16, backgroundColor: "var(--bg-secondary)", borderRadius: 8 }}>
-                <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>
-                  {record.date}
-                </div>
-                <div style={{ whiteSpace: "pre-wrap" }}>{record.content || "(无内容)"}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <SearchResults results={searchResults} onClear={() => { setSearchResults([]); setSearchQuery(""); }} />
       ) : viewMode === 'month' ? (
-        <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} style={{ padding: "8px 12px", backgroundColor: "var(--bg-secondary)", borderRadius: 6 }}>
-              ←
-            </button>
-            <span style={{ fontWeight: 500, fontSize: 18 }}>
-              {format(currentMonth, "yyyy 年 MM 月", { locale: zhCN })}
-            </span>
-            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} style={{ padding: "8px 12px", backgroundColor: "var(--bg-secondary)", borderRadius: 6 }}>
-              →
-            </button>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(7, 1fr)",
-              gap: 4,
-              backgroundColor: "var(--bg-secondary)",
-              padding: 16,
-              borderRadius: 8,
-            }}
-          >
-            {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
-              <div key={day} style={{ textAlign: "center", padding: 8, fontWeight: 500, color: "var(--text-secondary)" }}>
-                {day}
-              </div>
-            ))}
-            {Array(firstDayOfWeek).fill(null).map((_, i) => (
-              <div key={`empty-${i}`} />
-            ))}
-            {days.map((day) => {
-              const dateStr = format(day, "yyyy-MM-dd");
-              const record = records.get(dateStr);
-              const hasContent = !!record?.content;
-              const isSelected = isSameDay(day, currentDate);
-              const isPast = day < new Date() && !isToday(day);
-
-              return (
-                <button
-                  key={dateStr}
-                  onClick={() => handleDateClick(day)}
-                  style={{
-                    padding: 8,
-                    minHeight: 60,
-                    borderRadius: 4,
-                    backgroundColor: isSelected ? "var(--accent)" : hasContent ? "var(--bg-tertiary)" : "var(--bg-primary)",
-                    color: isSelected ? "white" : isPast ? "var(--text-primary)" : "var(--text-secondary)",
-                    border: hasContent && !isSelected ? "2px solid var(--accent)" : "1px solid var(--border)",
-                    textAlign: "center",
-                    fontSize: 14,
-                  }}
-                >
-                  <div style={{ fontWeight: isToday(day) ? 700 : 400 }}>{format(day, "d")}</div>
-                  {hasContent && <div style={{ fontSize: 10, marginTop: 4, color: isSelected ? "rgba(255,255,255,0.8)" : "var(--accent)" }}>●</div>}
-                </button>
-              );
-            })}
-          </div>
-        </>
+        <ResultsCalendar
+          currentMonth={currentMonth}
+          records={records}
+          currentDate={currentDate}
+          onMonthChange={setCurrentMonth}
+          onDateClick={handleDateClick}
+        />
       ) : (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16 }}>
-            <button onClick={() => autoSaveRecord().then(() => setCurrentDate(d => subDays(d, 1)))} style={{ padding: "8px 12px", backgroundColor: "var(--bg-secondary)", borderRadius: 6 }}>
-              ←
-            </button>
-            <span style={{ fontWeight: 500, fontSize: 18, minWidth: 200, textAlign: "center" }}>
-              {format(currentDate, "yyyy 年 MM 月 dd 日 EEE", { locale: zhCN })}
-            </span>
-            <button onClick={() => autoSaveRecord().then(() => setCurrentDate(d => addDays(d, 1)))} style={{ padding: "8px 12px", backgroundColor: "var(--bg-secondary)", borderRadius: 6 }}>
-              →
-            </button>
-            <button onClick={handleGoToToday} style={{ padding: "8px 16px", backgroundColor: "var(--bg-tertiary)", color: "var(--text-primary)", borderRadius: 6 }}>
-              今天
-            </button>
-          </div>
-
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
-            <textarea
-              value={editingContent}
-              onChange={(e) => setEditingContent(e.target.value)}
-              onKeyDown={(e) => {
-                console.log('textarea keydown:', e.key, 'ctrl:', e.ctrlKey);
-                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                  e.preventDefault();
-                  console.log('textarea Ctrl+S save triggered');
-                  autoSaveRef.current().then(() => console.log('autoSave completed'));
-                }
-              }}
-              placeholder="记录今天的成果..."
-              style={{
-                flex: 1,
-                minHeight: 300,
-                padding: 16,
-                borderRadius: 8,
-                border: "1px solid var(--border)",
-                backgroundColor: "var(--bg-secondary)",
-                color: "var(--text-primary)",
-                resize: "vertical",
-                fontSize: 14,
-                fontFamily: "inherit",
-              }}
-            />
-          </div>
-        </div>
+        <DayEditor
+          currentDate={currentDate}
+          editingContent={editingContent}
+          onContentChange={setEditingContent}
+          onDateNavigate={(dir) => autoSaveRecord().then(() => setCurrentDate(d => dir === "prev" ? subDays(d, 1) : addDays(d, 1)))}
+          onGoToToday={handleGoToToday}
+          onCtrlS={() => autoSaveRef.current()}
+        />
       )}
     </div>
   );

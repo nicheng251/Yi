@@ -6,6 +6,7 @@ import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { CommandResponse } from "../types";
 import { useToast } from "../components/Toast";
+import { Toggle } from "../components/Toggle";
 
 export default function Settings() {
   const { theme, setTheme, autostart, setAutostart } = useSettingsStore();
@@ -38,6 +39,7 @@ export default function Settings() {
       }
     } catch (e) {
       console.error("Failed to toggle autostart:", e);
+      showToast("自动启动设置失败", "error");
     }
   }
 
@@ -118,30 +120,7 @@ export default function Settings() {
             }}
           >
             <span>深色模式</span>
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              style={{
-                width: 48,
-                height: 24,
-                borderRadius: 12,
-                backgroundColor: theme === "dark" ? "var(--accent)" : "var(--bg-tertiary)",
-                position: "relative",
-                transition: "background-color 0.2s",
-              }}
-            >
-              <div
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  backgroundColor: "white",
-                  position: "absolute",
-                  top: 2,
-                  left: theme === "dark" ? 26 : 2,
-                  transition: "left 0.2s",
-                }}
-              />
-            </button>
+            <Toggle checked={theme === "dark"} onChange={(checked) => setTheme(checked ? "dark" : "light")} />
           </div>
         </div>
 
@@ -158,30 +137,7 @@ export default function Settings() {
             }}
           >
             <span>开机自启动</span>
-            <button
-              onClick={handleAutostartToggle}
-              style={{
-                width: 48,
-                height: 24,
-                borderRadius: 12,
-                backgroundColor: autostart ? "var(--accent)" : "var(--bg-tertiary)",
-                position: "relative",
-                transition: "background-color 0.2s",
-              }}
-            >
-              <div
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  backgroundColor: "white",
-                  position: "absolute",
-                  top: 2,
-                  left: autostart ? 26 : 2,
-                  transition: "left 0.2s",
-                }}
-              />
-            </button>
+            <Toggle checked={autostart} onChange={handleAutostartToggle} />
           </div>
         </div>
 

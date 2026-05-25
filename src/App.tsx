@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Home from "./pages/Home";
 import Results from "./pages/Results";
 import Archive from "./pages/Archive";
@@ -9,11 +9,21 @@ import { useSettingsStore } from "./store/settings";
 import { useTimerStore } from "./store/timer";
 import { ToastProvider } from "./components/Toast";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { useBrowserRestrictions } from "./hooks/useBrowserRestrictions";
 
 function App() {
   const { theme, loadSettings } = useSettingsStore();
   const { loadTimerSession, saveTimerSession } = useTimerStore();
   const [ready, setReady] = useState(false);
+  const loadTimerSessionRef = useRef(loadTimerSession);
+  const saveTimerSessionRef = useRef(saveTimerSession);
+
+  useBrowserRestrictions();
+
+  useEffect(() => {
+    loadTimerSessionRef.current = loadTimerSession;
+    saveTimerSessionRef.current = saveTimerSession;
+  }, [loadTimerSession, saveTimerSession]);
 
   useEffect(() => {
     loadSettings();
@@ -28,7 +38,7 @@ function App() {
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "timer_session_changed") {
-        loadTimerSession();
+        loadTimerSessionRef.current();
       }
       if (e.key === "projects_changed") {
         window.dispatchEvent(new CustomEvent("projects-changed"));
@@ -40,12 +50,12 @@ function App() {
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      saveTimerSession();
+      saveTimerSessionRef.current();
       localStorage.setItem("timer_session_changed", Date.now().toString());
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [saveTimerSession]);
+  }, []);
 
   if (!ready) {
     return <div style={{ padding: 20 }}>Loading...</div>;
@@ -94,7 +104,7 @@ function NavLink({ to, children, style }: { to: string; children: React.ReactNod
       to={to}
       style={{
         padding: "10px 12px",
-        borderRadius: 6,
+        borderRadius: 8,
         color: "var(--text-secondary)",
         transition: "all 0.15s",
         textDecoration: "none",

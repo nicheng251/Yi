@@ -4,18 +4,19 @@ import { CommandResponse, Project } from "../types";
 import {
   DndContext,
   closestCenter,
-  DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useSortableSensors } from "../hooks/useSortableSensors";
 import { SortableArchiveItem } from "../components/SortableArchiveItem";
+import { useToast } from "../components/Toast";
+import { reorderItems, saveReorder } from "../hooks/useReorder";
 
 export default function Archive() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const { showToast } = useToast();
 
   const sensors = useSortableSensors();
 
@@ -31,6 +32,7 @@ export default function Archive() {
       }
     } catch (e) {
       console.error("Failed to load archived projects:", e);
+      showToast("加载归档项目失败", "error");
     }
   }
 
@@ -42,6 +44,7 @@ export default function Archive() {
       }
     } catch (e) {
       console.error("Failed to unarchive project:", e);
+      showToast("恢复项目失败", "error");
     }
   }
 
@@ -54,26 +57,23 @@ export default function Archive() {
       }
     } catch (e) {
       console.error("Failed to delete project:", e);
+      showToast("删除项目失败", "error");
     }
   }
 
-  async function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
+  async function handleDragEnd(event: any) {
+    const reordered = reorderItems({
+      items: projects,
+      activeId: event.active.id,
+      overId: event.over.id,
+      onReorder: setProjects,
+      getId: (p) => p.id,
+    });
 
-    if (over && active.id !== over.id) {
-      const oldIndex = projects.findIndex((p) => p.id === active.id);
-      const newIndex = projects.findIndex((p) => p.id === over.id);
-
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newProjects = arrayMove(projects, oldIndex, newIndex);
-        setProjects(newProjects);
-
-        try {
-          const projectIds = newProjects.map((p) => p.id);
-          await invoke("reorder_projects", { projectIds });
-        } catch (e) {
-          console.error("Failed to reorder projects:", e);
-        }
+    if (reordered) {
+      const success = await saveReorder(projects, (p) => p.id);
+      if (!success) {
+        showToast("排序保存失败", "error");
       }
     }
   }

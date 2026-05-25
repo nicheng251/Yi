@@ -201,8 +201,10 @@ fn start_session(project_id: String, state: State<AppState>) -> Result<CommandRe
     let db_guard = state.db.lock().map_err(|e| e.to_string())?;
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
 
-    if let Ok(Some(active)) = db.get_active_session() {
-        let _ = db.end_session(&active.id);
+    let previous_session = db.get_active_session().ok().flatten();
+
+    if let Some(ref active) = previous_session {
+        db.end_session(&active.id).ok();
     }
 
     match db.create_session(&project_id) {
@@ -237,6 +239,16 @@ fn get_daily_record(date: String, state: State<AppState>) -> Result<CommandRespo
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
     match db.get_daily_record(&date) {
         Ok(record) => Ok(CommandResponse::ok(record)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn get_daily_records_for_month(year: i32, month: i32, state: State<AppState>) -> Result<CommandResponse<Vec<db::DailyRecord>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.get_daily_records_for_month(year, month) {
+        Ok(records) => Ok(CommandResponse::ok(records)),
         Err(e) => Ok(CommandResponse::err(&e.to_string())),
     }
 }
@@ -277,6 +289,16 @@ fn get_project_total_minutes(project_id: String, state: State<AppState>) -> Resu
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
     match db.get_project_total_minutes(&project_id) {
         Ok(minutes) => Ok(CommandResponse::ok(minutes)),
+        Err(e) => Ok(CommandResponse::err(&e.to_string())),
+    }
+}
+
+#[tauri::command]
+fn get_monthly_sessions(year: i32, month: i32, state: State<AppState>) -> Result<CommandResponse<Vec<db::DailySessionStat>>, String> {
+    let db_guard = state.db.lock().map_err(|e| e.to_string())?;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    match db.get_monthly_sessions(year, month) {
+        Ok(stats) => Ok(CommandResponse::ok(stats)),
         Err(e) => Ok(CommandResponse::err(&e.to_string())),
     }
 }
@@ -344,7 +366,12 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
         }
     }
 
-    db.clear_all_data().map_err(|e| e.to_string())?;
+    db.begin_transaction().map_err(|e| e.to_string())?;
+
+    if let Err(e) = db.clear_all_data() {
+        db.rollback_transaction().ok();
+        return Ok(CommandResponse::err(&e.to_string()));
+    }
 
     if let Some(categories) = data.get("categories").and_then(|c| c.as_array()) {
         for cat_val in categories {
@@ -368,7 +395,8 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
             let display_order = project_val.get("display_order").and_then(|o| o.as_i64()).unwrap_or(0);
 
             if let Err(e) = db.import_project(id, name, category_id, tags, is_archived, display_order) {
-                tracing::warn!("Failed to import project {}: {}", name, e);
+                db.rollback_transaction().ok();
+                return Ok(CommandResponse::err(&format!("Failed to import project {}: {}", name, e)));
             }
         }
     }
@@ -382,7 +410,8 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
             let minutes = session_val.get("minutes").and_then(|m| m.as_i64());
 
             if let Err(e) = db.import_session(id, project_id, started_at, ended_at, minutes) {
-                tracing::warn!("Failed to import session: {}", e);
+                db.rollback_transaction().ok();
+                return Ok(CommandResponse::err(&format!("Failed to import session: {}", e)));
             }
         }
     }
@@ -396,17 +425,19 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
             let updated_at = record_val.get("updated_at").and_then(|u| u.as_i64()).unwrap_or(0);
 
             if let Err(e) = db.import_daily_record(id, date, content, created_at, updated_at) {
-                tracing::warn!("Failed to import daily record: {}", e);
+                db.rollback_transaction().ok();
+                return Ok(CommandResponse::err(&format!("Failed to import daily record: {}", e)));
             }
         }
     }
 
+    db.commit_transaction().map_err(|e| e.to_string())?;
     Ok(CommandResponse::ok(()))
 }
 
 #[tauri::command]
-fn get_app_version() -> String {
-    env!("CARGO_PKG_VERSION").to_string()
+fn get_app_version(app: tauri::AppHandle) -> String {
+    app.config().version.as_ref().map(|s| s.as_str()).unwrap_or("0.0.0").to_string()
 }
 
 #[tauri::command]
@@ -509,10 +540,12 @@ fn main() {
             end_session,
             get_active_session,
             get_daily_record,
+            get_daily_records_for_month,
             save_daily_record,
             search_records,
             get_statistics,
             get_project_total_minutes,
+            get_monthly_sessions,
             get_setting,
             set_setting,
             export_data,

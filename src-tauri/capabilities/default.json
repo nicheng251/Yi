@@ -1,27 +1,11 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
+  "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Default capability for the main window",
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "core:window:default",
-    "core:window:allow-close",
-    "core:window:allow-minimize",
-    "core:window:allow-toggle-maximize",
-    "core:window:allow-set-title",
-    "shell:allow-open",
-    "autostart:allow-enable",
-    "autostart:allow-disable",
-    "autostart:allow-is-enabled",
-    "fs:default",
-    "fs:allow-write-text-file",
-    "fs:allow-read-text-file",
-    {
-      "identifier": "fs:allow-write-text-file",
-      "allow": [{ "path": "$DOWNLOAD/*" }, { "path": "$DOCUMENT/*" }, { "path": "$DESKTOP/*" }]
-    },
-    "dialog:allow-save",
-    "dialog:allow-open"
+    "core:webview:deny-internal-toggle-devtools",
+    "core:webview:deny-set-webview-zoom"
   ]
 }

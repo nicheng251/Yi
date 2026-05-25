@@ -117,6 +117,7 @@ export default function Home() {
       }
     } catch (e) {
       console.error("Failed to start timer:", e);
+      showToast("启动计时器失败", "error");
     }
   }
 
@@ -128,6 +129,7 @@ export default function Home() {
       loadProjects();
     } catch (e) {
       console.error("Failed to stop timer:", e);
+      showToast("停止计时器失败", "error");
     }
   }
 
@@ -140,9 +142,11 @@ export default function Home() {
         }
         loadProjects();
         refreshProjects();
+        showToast("项目已归档", "success");
       }
     } catch (e) {
       console.error("Failed to archive project:", e);
+      showToast("归档项目失败", "error");
     }
   }
 
@@ -153,9 +157,11 @@ export default function Home() {
       if (res.success) {
         loadProjects();
         refreshProjects();
+        showToast("项目已删除", "success");
       }
     } catch (e) {
       console.error("Failed to delete project:", e);
+      showToast("删除项目失败", "error");
     }
   }
 
@@ -185,6 +191,8 @@ export default function Home() {
           await invoke("reorder_projects", { projectIds });
         } catch (e) {
           console.error("Failed to reorder projects:", e);
+          refreshProjects();
+          showToast("排序保存失败", "error");
         }
       }
     }

@@ -3,6 +3,7 @@ use rusqlite::{Connection, Result, params};
 use std::sync::Mutex;
 use std::path::PathBuf;
 use tracing::info;
+use chrono::TimeZone;
 
 pub struct Database {
     pub conn: Mutex<Connection>,
@@ -24,6 +25,8 @@ impl Database {
 
     fn init_tables(&self) -> Result<()> {
         let conn = self.conn.lock().expect("Database lock poisoned");
+
+        conn.execute_batch("PRAGMA foreign_keys = ON")?;
 
         conn.execute_batch(
             "
@@ -178,19 +181,6 @@ impl Database {
         Ok(projects)
     }
 
-    fn get_project_tags(&self, project_id: &str) -> Result<Vec<String>> {
-        let conn = self.conn.lock().expect("Database lock poisoned");
-        let mut stmt = conn.prepare(
-            "SELECT t.name FROM tags t JOIN project_tags pt ON t.id = pt.tag_id WHERE pt.project_id = ?"
-        )?;
-
-        let tag_iter = stmt.query_map([project_id], |row| {
-            Ok(row.get(0)?)
-        })?;
-
-        Ok(tag_iter.filter_map(|t| t.ok()).collect())
-    }
-
     pub fn create_project(&self, name: &str, category_id: Option<&str>, tags: Vec<String>) -> Result<Project> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let id = uuid::Uuid::new_v4().to_string();
@@ -305,11 +295,24 @@ impl Database {
     }
 
     pub fn archive_project(&self, id: &str) -> Result<()> {
-        if let Ok(Some(active)) = self.get_active_session_for_project(id) {
-            self.end_session(&active.id)?;
-        }
         let conn = self.conn.lock().expect("Database lock poisoned");
         let now = chrono::Utc::now().timestamp();
+
+        let started_at: Option<i64> = conn.query_row(
+            "SELECT started_at FROM sessions WHERE project_id = ? AND ended_at IS NULL",
+            [id],
+            |row| row.get(0),
+        ).ok();
+
+        if let Some(started) = started_at {
+            let minutes = (now - started) / 60;
+            let minutes = if minutes > 0 { minutes } else { 0 };
+            conn.execute(
+                "UPDATE sessions SET ended_at = ?, minutes = ? WHERE project_id = ? AND ended_at IS NULL",
+                params![now, minutes, id],
+            )?;
+        }
+
         conn.execute(
             "UPDATE projects SET is_archived = 1, updated_at = ? WHERE id = ?",
             params![now, id],
@@ -346,12 +349,14 @@ impl Database {
 
     pub fn reorder_projects(&self, project_ids: &[String]) -> Result<()> {
         let conn = self.conn.lock().expect("Database lock poisoned");
+        conn.execute("BEGIN TRANSACTION", [])?;
         for (index, id) in project_ids.iter().enumerate() {
             conn.execute(
                 "UPDATE projects SET display_order = ? WHERE id = ?",
                 params![index as i64, id],
             )?;
         }
+        conn.execute("COMMIT", [])?;
         Ok(())
     }
 
@@ -378,6 +383,17 @@ impl Database {
 
     pub fn create_session(&self, project_id: &str) -> Result<Session> {
         let conn = self.conn.lock().expect("Database lock poisoned");
+        
+        let exists: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM projects WHERE id = ?)",
+            [project_id],
+            |row| row.get(0),
+        )?;
+        
+        if !exists {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
+        
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().timestamp();
 
@@ -439,29 +455,6 @@ impl Database {
         }
     }
 
-    pub fn get_active_session_for_project(&self, project_id: &str) -> Result<Option<Session>> {
-        let conn = self.conn.lock().expect("Database lock poisoned");
-        let mut stmt = conn.prepare(
-            "SELECT id, project_id, started_at, ended_at, minutes FROM sessions WHERE project_id = ? AND ended_at IS NULL"
-        )?;
-
-        let result = stmt.query_row([project_id], |row| {
-            Ok(Session {
-                id: row.get(0)?,
-                project_id: row.get(1)?,
-                started_at: row.get(2)?,
-                ended_at: row.get(3)?,
-                minutes: row.get(4)?,
-            })
-        });
-
-        match result {
-            Ok(session) => Ok(Some(session)),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(e),
-        }
-    }
-
     pub fn get_daily_record(&self, date: &str) -> Result<Option<DailyRecord>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
@@ -483,6 +476,29 @@ impl Database {
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(e),
         }
+    }
+
+    pub fn get_daily_records_for_month(&self, year: i32, month: i32) -> Result<Vec<DailyRecord>> {
+        let conn = self.conn.lock().expect("Database lock poisoned");
+        let start_date = format!("{:04}-{:02}-01", year, month);
+        let end_date = format!("{:04}-{:02}-31", year, month);
+
+        let mut stmt = conn.prepare(
+            "SELECT id, date, content, created_at, updated_at FROM daily_records 
+             WHERE date >= ? AND date <= ? ORDER BY date"
+        )?;
+
+        let records = stmt.query_map([&start_date, &end_date], |row| {
+            Ok(DailyRecord {
+                id: row.get(0)?,
+                date: row.get(1)?,
+                content: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        })?;
+
+        Ok(records.filter_map(|r| r.ok()).collect())
     }
 
     pub fn create_or_update_daily_record(&self, date: &str, content: &str) -> Result<DailyRecord> {
@@ -580,6 +596,41 @@ impl Database {
         Ok(minutes)
     }
 
+    pub fn get_monthly_sessions(&self, year: i32, month: i32) -> Result<Vec<DailySessionStat>> {
+        let conn = self.conn.lock().expect("Database lock poisoned");
+
+        let start_timestamp = chrono::Utc
+            .with_ymd_and_hms(year, month as u32, 1, 0, 0, 0)
+            .unwrap()
+            .timestamp();
+        let end_timestamp = if month == 12 {
+            chrono::Utc.with_ymd_and_hms(year + 1, 1, 1, 0, 0, 0)
+        } else {
+            chrono::Utc.with_ymd_and_hms(year, month as u32 + 1, 1, 0, 0, 0)
+        }
+        .unwrap()
+        .timestamp();
+
+        let mut stmt = conn.prepare(
+            "SELECT date(s.started_at, 'unixepoch', 'localtime') as day, p.name, SUM(s.minutes) as minutes
+             FROM sessions s
+             JOIN projects p ON s.project_id = p.id
+             WHERE s.started_at >= ? AND s.started_at < ? AND s.minutes IS NOT NULL
+             GROUP BY day, p.id
+             ORDER BY day, minutes DESC"
+        )?;
+
+        let stats = stmt.query_map(params![start_timestamp, end_timestamp], |row| {
+            Ok(DailySessionStat {
+                date: row.get(0)?,
+                project_name: row.get(1)?,
+                minutes: row.get(2)?,
+            })
+        })?;
+
+        Ok(stats.filter_map(|s| s.ok()).collect())
+    }
+
     pub fn get_all_sessions(&self) -> Result<Vec<Session>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
@@ -623,6 +674,24 @@ impl Database {
         conn.execute_batch(
             "DELETE FROM project_tags; DELETE FROM sessions; DELETE FROM daily_records; DELETE FROM projects; DELETE FROM categories; DELETE FROM tags; DELETE FROM settings;"
         )?;
+        Ok(())
+    }
+
+    pub fn begin_transaction(&self) -> Result<()> {
+        let conn = self.conn.lock().expect("Database lock poisoned");
+        conn.execute("BEGIN TRANSACTION", [])?;
+        Ok(())
+    }
+
+    pub fn commit_transaction(&self) -> Result<()> {
+        let conn = self.conn.lock().expect("Database lock poisoned");
+        conn.execute("COMMIT", [])?;
+        Ok(())
+    }
+
+    pub fn rollback_transaction(&self) -> Result<()> {
+        let conn = self.conn.lock().expect("Database lock poisoned");
+        conn.execute("ROLLBACK", [])?;
         Ok(())
     }
 
@@ -695,6 +764,13 @@ pub struct ProjectStat {
     pub project_id: String,
     pub project_name: String,
     pub total_minutes: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DailySessionStat {
+    pub date: String,
+    pub project_name: String,
+    pub minutes: i64,
 }
 
 #[cfg(test)]
