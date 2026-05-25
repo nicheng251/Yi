@@ -1,5 +1,6 @@
 import { ViewMode } from "../pages/Statistics";
 import { formatMinutes } from "../utils/format";
+import "../styles/components.css";
 
 interface StatsSummaryProps {
   viewMode: ViewMode;
@@ -19,29 +20,12 @@ export function StatsSummary({
   const displayMinutes = viewMode === "month" || viewMode === "week" ? monthTotalMinutes : totalMinutes;
 
   return (
-    <div
-      style={{
-        padding: 20,
-        backgroundColor: "var(--bg-secondary)",
-        borderRadius: 8,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}
-    >
+    <div className="stats-summary">
       <div>
-        <div style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 4 }}>
-          {getViewPeriodText()}
-        </div>
-        <div style={{ fontSize: 28, fontWeight: 600 }}>
-          总专注 {formatMinutes(displayMinutes)}
-        </div>
+        <div className="stats-summary-title">{getViewPeriodText()}</div>
+        <div className="stats-summary-value">总专注 {formatMinutes(displayMinutes)}</div>
       </div>
-      <div style={{ textAlign: "right" }}>
-        <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>
-          {getComparisonText()}
-        </div>
-      </div>
+      <div className="stats-summary-comparison">{getComparisonText()}</div>
     </div>
   );
 }

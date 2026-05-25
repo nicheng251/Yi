@@ -3,6 +3,7 @@ import { zhCN } from "date-fns/locale";
 import { startOfWeek, endOfWeek } from "date-fns";
 import { DailyFocus } from "../types";
 import { formatMinutes } from "../utils/format";
+import "../styles/components.css";
 
 interface CalendarDay {
   date: Date;
@@ -38,64 +39,23 @@ export function StatsCalendar({
 }: StatsCalendarProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "8px 16px",
-          backgroundColor: "var(--bg-secondary)",
-          borderRadius: 8,
-        }}
-      >
-        <button
-          onClick={onPrev}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 8, fontSize: 18, color: "var(--text-primary)" }}
-        >
-          ‹
-        </button>
-        <span style={{ fontSize: 16, fontWeight: 500, color: "var(--text-primary)" }}>
+      <div className="calendar-nav">
+        <button className="calendar-nav-btn" onClick={onPrev}>‹</button>
+        <span className="calendar-nav-title">
           {viewMode === "week"
             ? `${format(startOfWeek(calendarDate, { weekStartsOn: 1 }), "M月d日")} - ${format(endOfWeek(calendarDate, { weekStartsOn: 1 }), "M月d日")}`
             : format(calendarDate, "yyyy 年 MM 月", { locale: zhCN })}
         </span>
-        <button
-          onClick={onNext}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 8, fontSize: 18, color: "var(--text-primary)" }}
-        >
-          ›
-        </button>
+        <button className="calendar-nav-btn" onClick={onNext}>›</button>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          gap: 4,
-          padding: "12px",
-          backgroundColor: "var(--bg-secondary)",
-          borderRadius: 8,
-        }}
-      >
+      <div className="calendar-grid">
         {["一", "二", "三", "四", "五", "六", "日"].map((day, i) => (
-          <div
-            key={i}
-            style={{
-              height: 36,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12,
-              fontWeight: 500,
-              color: "var(--text-secondary)",
-            }}
-          >
-            {day}
-          </div>
+          <div key={i} className="weekday-header">{day}</div>
         ))}
         {calendarGrid.map((item, index) => {
           if ("isEmpty" in item) {
-            return <div key={index} style={{ width: 36, height: 36 }} />;
+            return <div key={index} className="day-cell-empty" />;
           }
           const minutes = item.focus?.totalMinutes || 0;
           const minutesDisplay = minutes > 0 ? formatMinutes(minutes) : "";
@@ -103,29 +63,14 @@ export function StatsCalendar({
             <div
               key={index}
               onClick={() => onDayClick(item)}
+              className="day-cell"
               style={{
-                width: 36,
-                height: 36,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto",
-                borderRadius: "50%",
-                cursor: "pointer",
                 backgroundColor: minutes === 0 ? "var(--bg-tertiary)" : getDayColor(minutes),
-                color: "var(--text-primary)",
-                fontSize: 12,
-                fontWeight: 400,
-                boxSizing: "border-box",
-                transition: "background-color 0.15s",
               }}
             >
               <span>{format(item.date, "d")}</span>
               {minutesDisplay && (
-                <span style={{ fontSize: 8, color: "var(--text-secondary)" }}>
-                  {minutesDisplay}
-                </span>
+                <span className="day-cell-label">{minutesDisplay}</span>
               )}
             </div>
           );

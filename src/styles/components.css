@@ -331,3 +331,167 @@
   background-color: var(--bg-secondary);
   border-radius: 8px;
 }
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: var(--bg-primary);
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 300px;
+  max-width: 400px;
+}
+
+/* Calendar Nav */
+.calendar-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.calendar-nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.calendar-nav-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Weekday Headers */
+.weekday-header {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Day Cell */
+.day-cell {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 400;
+  box-sizing: border-box;
+  transition: background-color 0.15s;
+}
+
+.day-cell-empty {
+  width: 36px;
+  height: 36px;
+}
+
+.day-cell-label {
+  font-size: 8px;
+  color: var(--text-secondary);
+}
+
+/* Stats Summary */
+.stats-summary {
+  padding: 20px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stats-summary-title {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.stats-summary-value {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.stats-summary-comparison {
+  text-align: right;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Toggle Group */
+.toggle-group {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-btn {
+  padding: 6px 12px;
+  border-radius: 6;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+
+.toggle-btn.active {
+  background-color: var(--accent);
+  color: white;
+}
+
+/* Project List Item */
+.project-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.project-info-name {
+  font-weight: 500;
+}
+
+.project-info-stats {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Date Picker Nav */
+.date-picker-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.date-picker-title {
+  font-weight: 500;
+  font-size: 18px;
+  min-width: 200px;
+  text-align: center;
+}
