@@ -1,4 +1,4 @@
-import { check } from '@tauri-apps/plugin-updater';
+import { check, type DownloadEvent } from '@tauri-apps/plugin-updater';
 import { useEffect, useState, useCallback, useRef } from 'react';
 
 interface UpdateInfo {
@@ -12,6 +12,7 @@ export function useAutoUpdate() {
   const [status, setStatus] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error'>('idle');
   const [progress, setProgress] = useState(0);
   const checkingRef = useRef(false);
+  const updateRef = useRef<any>(null);
 
   const checkUpdate = useCallback(async (onUpToDate?: () => void, onError?: () => void) => {
     if (checkingRef.current) return;
@@ -21,6 +22,7 @@ export function useAutoUpdate() {
     try {
       const update = await check();
       if (update) {
+        updateRef.current = update;
         setUpdateInfo({
           version: update.version,
           date: update.date,
@@ -47,17 +49,21 @@ export function useAutoUpdate() {
     setProgress(0);
 
     try {
-      const update = await check();
+      const update = updateRef.current;
       if (update) {
         let lastProgress = 0;
-        await update.downloadAndInstall((event) => {
-          if (event.event === 'Started') {
-            setProgress(0);
-          } else if (event.event === 'Progress') {
-            lastProgress += event.data.chunkLength;
-            setProgress(Math.min(lastProgress, 99));
-          } else if (event.event === 'Finished') {
-            setProgress(100);
+        await update.downloadAndInstall((event: DownloadEvent) => {
+          switch (event.event) {
+            case 'Started':
+              setProgress(0);
+              break;
+            case 'Progress':
+              lastProgress += event.data.chunkLength;
+              setProgress(Math.min(lastProgress, 99));
+              break;
+            case 'Finished':
+              setProgress(100);
+              break;
           }
         });
         setStatus('ready');

@@ -59,29 +59,29 @@ export default function Statistics() {
   }, [viewMode, calendarDate, isCalendarView]);
 
   async function loadStatistics() {
-    const now = new Date();
+    const base = isCalendarView ? calendarDate : new Date();
     let start: Date, end: Date, prevStart: Date;
 
     switch (viewMode) {
       case "day":
-        start = startOfDay(now);
-        end = endOfDay(now);
+        start = startOfDay(base);
+        end = endOfDay(base);
         prevStart = subDays(start, 1);
         break;
       case "week":
-        start = startOfWeek(now, { weekStartsOn: 1 });
-        end = endOfWeek(now, { weekStartsOn: 1 });
+        start = startOfWeek(base, { weekStartsOn: 1 });
+        end = endOfWeek(base, { weekStartsOn: 1 });
         prevStart = subWeeks(start, 1);
         break;
       case "month":
-        start = startOfMonth(now);
-        end = endOfMonth(now);
+        start = startOfMonth(base);
+        end = endOfMonth(base);
         prevStart = subMonths(start, 1);
         break;
       case "year":
-        start = new Date(now.getFullYear(), 0, 1);
-        end = new Date(now.getFullYear(), 11, 31);
-        prevStart = new Date(now.getFullYear() - 1, 0, 1);
+        start = new Date(base.getFullYear(), 0, 1);
+        end = new Date(base.getFullYear(), 11, 31);
+        prevStart = new Date(base.getFullYear() - 1, 0, 1);
         break;
       default:
         return;
@@ -93,12 +93,12 @@ export default function Statistics() {
     try {
       const [currentRes, prevRes] = await Promise.all([
         invoke("get_statistics", {
-          startDate: String(Math.floor(start.getTime() / 1000)),
-          endDate: String(Math.floor(end.getTime() / 1000)),
+          startDate: Math.floor(start.getTime() / 1000),
+          endDate: Math.floor(end.getTime() / 1000),
         }),
         invoke("get_statistics", {
-          startDate: String(Math.floor(prevStart.getTime() / 1000)),
-          endDate: String(Math.floor(prevEnd.getTime() / 1000)),
+          startDate: Math.floor(prevStart.getTime() / 1000),
+          endDate: Math.floor(prevEnd.getTime() / 1000),
         }),
       ]);
 

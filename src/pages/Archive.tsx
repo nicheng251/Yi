@@ -41,6 +41,7 @@ export default function Archive() {
       const res = (await invoke("unarchive_project", { id: projectId })) as CommandResponse<null>;
       if (res.success) {
         loadArchivedProjects();
+        showToast("项目已恢复", "success");
       }
     } catch (e) {
       console.error("Failed to unarchive project:", e);
@@ -54,6 +55,7 @@ export default function Archive() {
       const res = (await invoke("delete_project", { id: projectId })) as CommandResponse<null>;
       if (res.success) {
         loadArchivedProjects();
+        showToast("项目已永久删除", "success");
       }
     } catch (e) {
       console.error("Failed to delete project:", e);

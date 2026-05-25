@@ -12,7 +12,15 @@ interface SortableArchiveItemProps {
 
 export function SortableArchiveItem({ project, onUnarchive, onDelete }: SortableArchiveItemProps) {
   return (
-    <SortableItemBase project={project} onDelete={onDelete}>
+    <SortableItemBase
+      project={project}
+      onDelete={onDelete}
+      actionButtons={
+        <button onClick={() => onUnarchive(project.id)} className="btn btn-primary">
+          重新启用
+        </button>
+      }
+    >
       <div>
         <div className="text-primary">{project.name}</div>
         <div className="text-secondary">
@@ -21,11 +29,6 @@ export function SortableArchiveItem({ project, onUnarchive, onDelete }: Sortable
             <span style={{ marginLeft: 12 }}>累计 {formatMinutes(project.total_minutes)}</span>
           )}
         </div>
-      </div>
-      <div className="flex-row gap-8">
-        <button onClick={() => onUnarchive(project.id)} className="btn btn-primary">
-          重新启用
-        </button>
       </div>
     </SortableItemBase>
   );

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTimerStore } from "../store/timer";
-import { useProjectStore } from "../store/projects";
 import { CommandResponse, Project, Session } from "../types";
 import { SortableProjectItem } from "../components/SortableProjectItem";
 import { StatsBar } from "../components/StatsBar";
@@ -27,7 +26,6 @@ export default function Home() {
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const { activeSession, setActiveSession, clearActiveSession } = useTimerStore();
-  const { refreshProjects } = useProjectStore();
   const { showToast } = useToast();
 
   const sensors = useSortableSensors();
@@ -94,7 +92,6 @@ export default function Home() {
         setNewProjectName("");
         setShowNewProject(false);
         loadProjects();
-        refreshProjects();
       } else {
         console.error("Create project failed:", res.error);
         showToast("创建失败: " + (res.error || "未知错误"), "error");
@@ -140,7 +137,6 @@ export default function Home() {
           clearActiveSession();
         }
         loadProjects();
-        refreshProjects();
         showToast("项目已归档", "success");
       }
     } catch (e) {
@@ -155,7 +151,6 @@ export default function Home() {
       const res = (await invoke("delete_project", { id: projectId })) as CommandResponse<null>;
       if (res.success) {
         loadProjects();
-        refreshProjects();
         showToast("项目已删除", "success");
       }
     } catch (e) {
@@ -180,7 +175,7 @@ export default function Home() {
       setSortKey((k) => k + 1);
     },
     onError: () => {
-      refreshProjects();
+      loadProjects();
       showToast("排序保存失败", "error");
     },
   });

@@ -386,7 +386,7 @@ impl Database {
         )?;
 
         if !exists {
-            return Err(rusqlite::Error::InvalidQuery);
+            return Err(rusqlite::Error::InvalidParameterName(project_id.to_string()));
         }
 
         // Single transaction: end any active session, then create new one
@@ -578,7 +578,7 @@ impl Database {
         Ok(records.filter_map(|r| r.ok()).collect())
     }
 
-    pub fn get_statistics(&self, start_date: &str, end_date: &str) -> Result<Vec<ProjectStat>> {
+    pub fn get_statistics(&self, start_date: i64, end_date: i64) -> Result<Vec<ProjectStat>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
             "SELECT p.id, p.name, COALESCE(SUM(s.minutes), 0) as total_minutes

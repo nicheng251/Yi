@@ -200,8 +200,8 @@ fn search_records(query: String, state: State<AppState>) -> Result<CommandRespon
 }
 
 #[tauri::command]
-fn get_statistics(start_date: String, end_date: String, state: State<AppState>) -> Result<CommandResponse<Vec<db::ProjectStat>>, String> {
-    with_db!(state, |db| db.get_statistics(&start_date, &end_date))
+fn get_statistics(start_date: i64, end_date: i64, state: State<AppState>) -> Result<CommandResponse<Vec<db::ProjectStat>>, String> {
+    with_db!(state, |db| db.get_statistics(start_date, end_date))
 }
 
 #[tauri::command]
