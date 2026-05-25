@@ -9,6 +9,7 @@ import { useSettingsStore } from "./store/settings";
 import { useTimerStore } from "./store/timer";
 import { ToastProvider } from "./components/Toast";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { useBrowserRestrictions } from "./hooks/useBrowserRestrictions";
 
 function App() {
   const { theme, loadSettings } = useSettingsStore();
@@ -16,6 +17,8 @@ function App() {
   const [ready, setReady] = useState(false);
   const loadTimerSessionRef = useRef(loadTimerSession);
   const saveTimerSessionRef = useRef(saveTimerSession);
+
+  useBrowserRestrictions();
 
   useEffect(() => {
     loadTimerSessionRef.current = loadTimerSession;
@@ -101,7 +104,7 @@ function NavLink({ to, children, style }: { to: string; children: React.ReactNod
       to={to}
       style={{
         padding: "10px 12px",
-        borderRadius: 6,
+        borderRadius: 8,
         color: "var(--text-secondary)",
         transition: "all 0.15s",
         textDecoration: "none",
