@@ -1,7 +1,7 @@
 # Yi - Focus Productivity Tool
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.1-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.2.2-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg" alt="Platform">
   <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="License">
 </p>
@@ -28,6 +28,7 @@
 - One-tap start/stop from project list
 - Session history automatically logged
 - Minimum tracking unit: 1 minute
+- Video player-style play/stop buttons
 
 ### 📅 Daily Records
 - Calendar-based view for browsing achievements
@@ -39,17 +40,26 @@
 - View focus time by day, week, month, or year
 - Project-wise time distribution
 - Period-over-period comparison
+- Intuitive calendar navigation
 
 ### 📁 Project Management
 - Create, archive, and delete projects
 - Sort projects by creation time, last activity, or name
 - Archive management with restore capability
 - One-click project switching with automatic timer transfer
+- Drag-and-drop project reordering
+
+### 🔒 Privacy & Security
+- Browser restrictions to prevent accidental navigation
+- No browser devtools access
+- Zoom controls disabled
+- Clean desktop experience
 
 ### ⚙️ Settings
 - Dark/Light theme toggle
 - Auto-start on system boot
 - Export all data as JSON
+- Import data from backup
 - Automatic backup on first launch (keeps last 7 days)
 
 ---
@@ -97,8 +107,8 @@ npm run tauri build
 ./src-tauri/target/release/yi
 
 # Or install via package manager
-sudo dpkg -i src-tauri/target/release/bundle/deb/Yi_0.1.0_amd64.deb  # Ubuntu/Debian
-sudo rpm -i src-tauri/target/release/bundle/rpm/Yi-0.1.0-1.x86_64.rpm # Fedora/RHEL
+sudo dpkg -i src-tauri/target/release/bundle/deb/Yi_0.2.2_amd64.deb  # Ubuntu/Debian
+sudo rpm -i src-tauri/target/release/bundle/rpm/Yi-0.2.2-1.x86_64.rpm # Fedora/RHEL
 ```
 
 ---
@@ -109,18 +119,26 @@ sudo rpm -i src-tauri/target/release/bundle/rpm/Yi-0.1.0-1.x86_64.rpm # Fedora/R
 Yi/
 ├── src/                          # React frontend (TypeScript)
 │   ├── components/               # Reusable UI components
+│   │   ├── IconButton.tsx        #   Play/Stop buttons
+│   │   ├── SortableItemBase.tsx #   Drag-drop base component
+│   │   ├── Toggle.tsx           #   Toggle switch component
+│   │   └── ...
 │   ├── pages/                    # Page components
-│   │   ├── Home.tsx              #   Project list + timer
-│   │   ├── Results.tsx           #   Daily records + calendar
-│   │   ├── Archive.tsx           #   Archived projects
-│   │   ├── Statistics.tsx        #   Focus statistics
-│   │   └── Settings.tsx          #   App settings
+│   │   ├── Home.tsx             #   Project list + timer
+│   │   ├── Results.tsx          #   Daily records + calendar
+│   │   ├── Archive.tsx          #   Archived projects
+│   │   ├── Statistics.tsx       #   Focus statistics
+│   │   └── Settings.tsx         #   App settings
+│   ├── hooks/                    # Custom React hooks
+│   │   ├── useBrowserRestrictions.ts
+│   │   ├── useDragReorder.ts
+│   │   └── ...
 │   ├── store/                    # Zustand state management
-│   └── styles/                   # Global CSS
+│   └── styles/                   # CSS files
 ├── src-tauri/                    # Rust backend
 │   ├── src/
-│   │   ├── main.rs               #   Entry point + Tauri commands
-│   │   └── db.rs                 #   SQLite database operations
+│   │   ├── main.rs              #   Entry point + Tauri commands
+│   │   └── db.rs               #   SQLite database operations
 │   ├── icons/                    # App icons
 │   ├── capabilities/             # Tauri permission config
 │   ├── Cargo.toml

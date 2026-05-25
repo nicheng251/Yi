@@ -7,12 +7,14 @@ import { save, open } from "@tauri-apps/plugin-dialog";
 import { CommandResponse } from "../types";
 import { useToast } from "../components/Toast";
 import { Toggle } from "../components/Toggle";
+import { useAutoUpdate } from "../hooks/useAutoUpdate";
 
 export default function Settings() {
   const { theme, setTheme, autostart, setAutostart } = useSettingsStore();
   const { clearActiveSession } = useTimerStore();
   const { showToast } = useToast();
   const [version, setVersion] = useState<string>("");
+  const { updateInfo, status, progress, checkUpdate, downloadAndInstall } = useAutoUpdate();
 
   useEffect(() => {
     checkAutostart();
@@ -184,8 +186,32 @@ export default function Settings() {
               <span style={{ fontWeight: 500 }}>Yi</span>
               <span style={{ color: "var(--text-secondary)", marginLeft: 8 }}>{version ? `v${version}` : ""}</span>
             </div>
-            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 12 }}>
               专注生产力工具
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button
+                onClick={checkUpdate}
+                className="btn"
+                disabled={status === 'checking' || status === 'downloading'}
+              >
+                {status === 'checking' ? '检查中...' : '检查更新'}
+              </button>
+              {status === 'available' && (
+                <span style={{ color: 'var(--accent)' }}>
+                  发现新版本 {updateInfo?.version}
+                </span>
+              )}
+              {status === 'downloading' && (
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  下载中... {progress}%
+                </span>
+              )}
+              {status === 'available' && (
+                <button onClick={downloadAndInstall} className="btn btn-primary">
+                  立即更新
+                </button>
+              )}
             </div>
           </div>
         </div>

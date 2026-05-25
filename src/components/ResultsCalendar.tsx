@@ -23,7 +23,7 @@ export function ResultsCalendar({
     end: endOfMonth(currentMonth),
   });
 
-  const firstDayOfWeek = startOfMonth(currentMonth).getDay();
+  const firstDayOffset = (startOfMonth(currentMonth).getDay() + 6) % 7;
 
   return (
     <>
@@ -34,10 +34,10 @@ export function ResultsCalendar({
       </div>
 
       <div className="calendar-grid">
-        {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
+        {["一", "二", "三", "四", "五", "六", "日"].map((day) => (
           <div key={day} className="calendar-header">{day}</div>
         ))}
-        {Array(firstDayOfWeek).fill(null).map((_, i) => (
+        {Array(firstDayOffset).fill(null).map((_, i) => (
           <div key={`empty-${i}`} className="calendar-day empty" />
         ))}
         {days.map((day) => {
@@ -51,7 +51,7 @@ export function ResultsCalendar({
             <button
               key={dateStr}
               onClick={() => onDateClick(day)}
-              className={`calendar-day ${isSelected ? 'selected' : ''} ${hasContent && !isSelected ? 'has-content' : ''}`}
+              className={`calendar-day ${isSelected ? 'selected' : ''} ${hasContent && !isSelected ? 'has-content' : ''} ${isToday(day) ? 'today' : ''}`}
               style={{
                 color: isSelected ? "white" : isPast ? "var(--text-primary)" : "var(--text-secondary)",
               }}

@@ -240,25 +240,32 @@
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 8px;
   background-color: var(--bg-secondary);
-  padding: 16px;
-  border-radius: 8px;
+  padding: 20px;
+  border-radius: 12px;
 }
 
 .calendar-header {
   text-align: center;
-  padding: 8px;
-  font-weight: 500;
+  padding: 8px 0;
+  font-weight: 600;
   color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .calendar-day {
-  padding: 8px;
-  min-height: 60px;
-  border-radius: 4;
+  padding: 12px;
+  min-height: 70px;
+  border-radius: 8px;
   text-align: center;
   font-size: 14px;
+  transition: all 0.15s;
+}
+
+.calendar-day:hover:not(.empty) {
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .calendar-day.selected {
@@ -266,13 +273,17 @@
   color: white;
 }
 
-.calendar-day.has-content {
+.calendar-day.has-content:not(.selected) {
   background-color: var(--bg-tertiary);
+}
+
+.calendar-day.today:not(.selected) {
   border: 2px solid var(--accent);
+  background-color: var(--bg-tertiary);
 }
 
 .calendar-day.empty {
-  background-color: var(--bg-primary);
+  background-color: transparent;
 }
 
 /* Settings */
