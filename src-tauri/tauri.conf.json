@@ -42,5 +42,16 @@
         "type": "downloadBootstrapper"
       }
     }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDIwRUQxM0VBOTYzRkVENgpSV1RXL21PcFB0RU9BaE9hSzdZdjJwTXpTeFFoRkM0SWZqZHZSR01hSEYrNDZmUHBidDNXODhjNQo=",
+      "endpoints": [
+        "https://github.com/nicheng251/Yi/releases/download/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }
