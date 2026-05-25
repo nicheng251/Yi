@@ -436,8 +436,8 @@ fn import_data(json_data: String, state: State<AppState>) -> Result<CommandRespo
 }
 
 #[tauri::command]
-fn get_app_version() -> String {
-    env!("CARGO_PKG_VERSION").to_string()
+fn get_app_version(app: tauri::AppHandle) -> String {
+    app.config().version.as_ref().map(|s| s.as_str()).unwrap_or("0.0.0").to_string()
 }
 
 #[tauri::command]
