@@ -13,7 +13,7 @@ export function useAutoUpdate() {
   const [progress, setProgress] = useState(0);
   const checkingRef = useRef(false);
 
-  const checkUpdate = useCallback(async () => {
+  const checkUpdate = useCallback(async (onUpToDate?: () => void, onError?: () => void) => {
     if (checkingRef.current) return;
     checkingRef.current = true;
     setStatus('checking');
@@ -29,10 +29,12 @@ export function useAutoUpdate() {
         setStatus('available');
       } else {
         setStatus('idle');
+        onUpToDate?.();
       }
     } catch (e) {
       console.error('检查更新失败:', e);
       setStatus('idle');
+      onError?.();
     } finally {
       checkingRef.current = false;
     }

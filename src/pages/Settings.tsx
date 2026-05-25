@@ -191,7 +191,10 @@ export default function Settings() {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button
-                onClick={checkUpdate}
+                onClick={() => checkUpdate(
+                  () => showToast("已是最新版本", "success"),
+                  () => showToast("检查更新失败", "error")
+                )}
                 className="btn"
                 disabled={status === 'checking' || status === 'downloading'}
               >
