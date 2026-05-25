@@ -60,7 +60,7 @@ export default function Results() {
     if (viewMode === 'month' && isDirty) {
       autoSaveRef.current();
     }
-  }, [viewMode, isDirty]);
+  }, [viewMode, isDirty, autoSaveRef]);
 
   useEffect(() => {
     if (editingContent !== originalContent) {

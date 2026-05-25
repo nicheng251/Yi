@@ -295,11 +295,24 @@ impl Database {
     }
 
     pub fn archive_project(&self, id: &str) -> Result<()> {
-        if let Ok(Some(active)) = self.get_active_session_for_project(id) {
-            self.end_session(&active.id)?;
-        }
         let conn = self.conn.lock().expect("Database lock poisoned");
         let now = chrono::Utc::now().timestamp();
+
+        let started_at: Option<i64> = conn.query_row(
+            "SELECT started_at FROM sessions WHERE project_id = ? AND ended_at IS NULL",
+            [id],
+            |row| row.get(0),
+        ).ok();
+
+        if let Some(started) = started_at {
+            let minutes = (now - started) / 60;
+            let minutes = if minutes > 0 { minutes } else { 0 };
+            conn.execute(
+                "UPDATE sessions SET ended_at = ?, minutes = ? WHERE project_id = ? AND ended_at IS NULL",
+                params![now, minutes, id],
+            )?;
+        }
+
         conn.execute(
             "UPDATE projects SET is_archived = 1, updated_at = ? WHERE id = ?",
             params![now, id],
@@ -622,7 +635,7 @@ impl Database {
         .timestamp();
 
         let mut stmt = conn.prepare(
-            "SELECT date(s.started_at, 'unixepoch') as day, p.name, SUM(s.minutes) as minutes
+            "SELECT date(s.started_at, 'unixepoch', 'localtime') as day, p.name, SUM(s.minutes) as minutes
              FROM sessions s
              JOIN projects p ON s.project_id = p.id
              WHERE s.started_at >= ? AND s.started_at < ? AND s.minutes IS NOT NULL
