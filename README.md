@@ -1,7 +1,7 @@
 # Yi - Focus Productivity Tool
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.2-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.2.4-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg" alt="Platform">
   <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="License">
 </p>
@@ -107,8 +107,8 @@ npm run tauri build
 ./src-tauri/target/release/yi
 
 # Or install via package manager
-sudo dpkg -i src-tauri/target/release/bundle/deb/Yi_0.2.2_amd64.deb  # Ubuntu/Debian
-sudo rpm -i src-tauri/target/release/bundle/rpm/Yi-0.2.2-1.x86_64.rpm # Fedora/RHEL
+sudo dpkg -i src-tauri/target/release/bundle/deb/Yi_0.2.4_amd64.deb  # Ubuntu/Debian
+sudo rpm -i src-tauri/target/release/bundle/rpm/Yi-0.2.4-1.x86_64.rpm # Fedora/RHEL
 ```
 
 ---
