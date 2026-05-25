@@ -6,6 +6,7 @@ import { useTimerStore } from "../store/timer";
 import { ResultsCalendar } from "../components/ResultsCalendar";
 import { DayEditor } from "../components/DayEditor";
 import { SearchResults } from "../components/SearchResults";
+import { useToast } from "../components/Toast";
 
 export default function Results() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -18,6 +19,7 @@ export default function Results() {
   const [searchResults, setSearchResults] = useState<DailyRecord[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const { saveTimerSession } = useTimerStore();
+  const { showToast } = useToast();
 
   const recordsRef = useRef(records);
   recordsRef.current = records;
@@ -124,6 +126,7 @@ export default function Results() {
       setRecords(newRecords);
     } catch (e) {
       console.error("Failed to load records:", e);
+      showToast("加载记录失败", "error");
     }
   }
 
@@ -141,6 +144,7 @@ export default function Results() {
       setIsDirty(false);
     } catch (e) {
       console.error("Failed to load record:", e);
+      showToast("加载记录失败", "error");
     }
   }
 
@@ -163,6 +167,7 @@ export default function Results() {
       }
     } catch (e) {
       console.error("Auto-save failed:", e);
+      showToast("保存失败", "error");
     }
   }
 
@@ -175,6 +180,7 @@ export default function Results() {
       }
     } catch (e) {
       console.error("Failed to search:", e);
+      showToast("搜索失败", "error");
     }
   }
 
