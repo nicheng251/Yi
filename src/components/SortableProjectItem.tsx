@@ -26,9 +26,9 @@ export function SortableProjectItem({
     <SortableItemBase project={project} onDelete={onDelete} actionButtons={
       <>
         {isRunning ? (
-          <IconButton onClick={onStopTimer} color="#dc2626" icon="stop" />
+          <IconButton onClick={onStopTimer} icon="stop" />
         ) : (
-          <IconButton onClick={() => onStartTimer(project.id)} color="#22c55e" icon="play" />
+          <IconButton onClick={() => onStartTimer(project.id)} icon="play" />
         )}
         <button onClick={() => onArchive(project.id)} className="btn">
           归档
