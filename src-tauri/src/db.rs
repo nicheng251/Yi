@@ -455,29 +455,6 @@ impl Database {
         }
     }
 
-    pub fn get_active_session_for_project(&self, project_id: &str) -> Result<Option<Session>> {
-        let conn = self.conn.lock().expect("Database lock poisoned");
-        let mut stmt = conn.prepare(
-            "SELECT id, project_id, started_at, ended_at, minutes FROM sessions WHERE project_id = ? AND ended_at IS NULL"
-        )?;
-
-        let result = stmt.query_row([project_id], |row| {
-            Ok(Session {
-                id: row.get(0)?,
-                project_id: row.get(1)?,
-                started_at: row.get(2)?,
-                ended_at: row.get(3)?,
-                minutes: row.get(4)?,
-            })
-        });
-
-        match result {
-            Ok(session) => Ok(Some(session)),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(e),
-        }
-    }
-
     pub fn get_daily_record(&self, date: &str) -> Result<Option<DailyRecord>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
