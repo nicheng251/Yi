@@ -52,8 +52,10 @@ Yi/
 | `src/pages/Results.tsx` | Mounts `tauri-quit` event listener for save-on-quit |
 | `src/store/timer.ts` | activeSession, startTimer, stopTimer |
 | `src/pages/Settings.tsx` | Uses `invoke("get_app_version")` for dynamic version display |
-| `src-tauri/src/main.rs` | Tauri commands, tray setup, window events, get_app_version |
+| `src-tauri/src/main.rs` | Tauri commands, tray setup, window events |
 | `src-tauri/src/db.rs` | All database operations, SQL queries |
+| `src-tauri/capabilities/default.json` | Webview permissions (devtools, zoom denied) |
+| `src/hooks/useBrowserRestrictions.ts` | Blocks browser shortcuts, right-click, mouse nav |
 
 ## Important Behaviors
 
@@ -64,7 +66,7 @@ Yi/
 | `import_data` | Closes active sessions (calculates ended_at, minutes), then clears all data and imports |
 | `quit_app` | Calls app.exit(0) after dispatching tauri-quit event |
 | Close window | Hides to tray instead of closing |
-| `get_app_version` | Returns `env!("CARGO_PKG_VERSION")` from Rust |
+| `get_app_version` | Returns version from `tauri.conf.json` via `app.config().version` |
 
 ## Data Model
 
@@ -89,6 +91,12 @@ Yi/
 - StatsBar shows today/week totals via `get_project_stats()`
 - LIKE queries escape `%` and `_` wildcards (see `search_daily_records`)
 
+## UI Conventions
+
+- All buttons use `border-radius: 8px` (unified)
+- Play/Stop icons: no background, colored SVG icons (video player style)
+- `SortableItemBase` uses `actionButtons` prop for right-side buttons (not children)
+
 ## Session Management
 
 - Timer state persists via Tauri settings (`active_session_id`, `active_session_project`, `active_session_start`)
@@ -103,4 +111,4 @@ Yi/
 
 ## Version
 
-Current: v0.2.2 (bumped in `src-tauri/tauri.conf.json` and `package.json`)
+Current: v0.2.1 (defined in `src-tauri/tauri.conf.json`, read via `app.config().version`)
