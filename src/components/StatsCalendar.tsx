@@ -2,7 +2,6 @@ import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { startOfWeek, endOfWeek } from "date-fns";
 import { DailyFocus } from "../types";
-import { formatMinutes } from "../utils/format";
 import "../styles/components.css";
 
 interface CalendarDay {
@@ -58,20 +57,17 @@ export function StatsCalendar({
             return <div key={index} className="day-cell-empty" />;
           }
           const minutes = item.focus?.totalMinutes || 0;
-          const minutesDisplay = minutes > 0 ? formatMinutes(minutes) : "";
           return (
             <div
               key={index}
               onClick={() => onDayClick(item)}
               className="day-cell"
               style={{
-                backgroundColor: minutes === 0 ? "var(--bg-tertiary)" : getDayColor(minutes),
+                backgroundColor: getDayColor(minutes),
+                color: minutes > 120 ? "#fff" : undefined,
               }}
             >
-              <span>{format(item.date, "d")}</span>
-              {minutesDisplay && (
-                <span className="day-cell-label">{minutesDisplay}</span>
-              )}
+              {format(item.date, "d")}
             </div>
           );
         })}

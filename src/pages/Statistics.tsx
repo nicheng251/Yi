@@ -198,12 +198,12 @@ export default function Statistics() {
   }, [monthlyData]);
 
   function getDayColor(minutes: number): string {
-    if (minutes === 0) return "transparent";
-    if (minutes <= 30) return "rgba(var(--accent-rgb, 66, 135, 245), 0.15)";
-    if (minutes <= 60) return "rgba(var(--accent-rgb, 66, 135, 245), 0.30)";
-    if (minutes <= 120) return "rgba(var(--accent-rgb, 66, 135, 245), 0.50)";
-    if (minutes <= 180) return "rgba(var(--accent-rgb, 66, 135, 245), 0.70)";
-    return "rgba(var(--accent-rgb, 66, 135, 245), 0.90)";
+    if (minutes === 0) return "var(--bg-tertiary)";
+    if (minutes <= 30)  return "color-mix(in srgb, var(--accent) 20%, transparent)";
+    if (minutes <= 60)  return "color-mix(in srgb, var(--accent) 35%, transparent)";
+    if (minutes <= 120) return "color-mix(in srgb, var(--accent) 55%, transparent)";
+    if (minutes <= 180) return "color-mix(in srgb, var(--accent) 75%, transparent)";
+    return "var(--accent)";
   }
 
   function getComparisonText(): string {
