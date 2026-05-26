@@ -14,10 +14,7 @@ export function TitleBar() {
   return (
     <div className="titlebar">
       <div className="titlebar-drag">
-        <svg className="titlebar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="var(--accent)" strokeWidth="2.5" />
-          <path d="M8 12L11 15L16 9" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <img src="/icon.png" className="titlebar-icon" alt="" />
         <span className="titlebar-appname">Yi</span>
       </div>
       <div className="titlebar-controls">
