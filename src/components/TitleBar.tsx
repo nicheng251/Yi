@@ -1,47 +1,20 @@
-declare global {
-  interface Window {
-    __TAURI__?: {
-      window: {
-        getCurrentWindow: () => {
-          minimize: () => Promise<void>;
-          toggleMaximize: () => Promise<void>;
-          close: () => Promise<void>;
-        };
-      };
-    };
-  }
-}
-
-function getWin() {
-  try {
-    if (window.__TAURI__?.window) {
-      return window.__TAURI__.window.getCurrentWindow();
-    }
-    return null;
-  } catch (e) {
-    console.error("[TitleBar] getCurrentWindow failed:", e);
-    return null;
-  }
-}
-
-const win = getWin();
-console.log("[TitleBar] init:", win ? "OK" : "FAIL");
+import { useState, useEffect } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export function TitleBar() {
-  const handleMinimize = () => {
-    if (!win) return console.error("[TitleBar] minimize: window not available");
-    win.minimize().catch((e) => console.error("[TitleBar] minimize failed:", e));
-  };
+  const [appWindow, setAppWindow] = useState<ReturnType<typeof getCurrentWindow> | null>(null);
 
-  const handleMaximize = () => {
-    if (!win) return console.error("[TitleBar] maximize: window not available");
-    win.toggleMaximize().catch((e) => console.error("[TitleBar] maximize failed:", e));
-  };
+  useEffect(() => {
+    try {
+      setAppWindow(getCurrentWindow());
+    } catch (e) {
+      console.error("[TitleBar] init failed:", e);
+    }
+  }, []);
 
-  const handleClose = () => {
-    if (!win) return console.error("[TitleBar] close: window not available");
-    win.close().catch((e) => console.error("[TitleBar] close failed:", e));
-  };
+  const handleMinimize = () => appWindow?.minimize();
+  const handleMaximize = () => appWindow?.toggleMaximize();
+  const handleClose = () => appWindow?.close();
 
   return (
     <div className="titlebar">
