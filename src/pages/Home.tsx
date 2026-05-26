@@ -192,7 +192,7 @@ export default function Home() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="section-title" style={{ marginBottom: 0 }}>📋 项目列表</h1>
+        <h1 className="section-title" style={{ marginBottom: 0 }}>项目列表</h1>
         <div className="flex-row">
           <StatsBar />
           <select

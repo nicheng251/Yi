@@ -159,7 +159,7 @@ export default function Results() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="section-title" style={{ marginBottom: 0 }}>📝 成果记录</h1>
+        <h1 className="section-title" style={{ marginBottom: 0 }}>成果记录</h1>
         <div className="flex-row" style={{ gap: 8 }}>
           <input
             type="text"

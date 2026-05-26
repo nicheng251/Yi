@@ -271,7 +271,7 @@ export default function Statistics() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="section-title" style={{ marginBottom: 0 }}>📊 统计</h1>
+        <h1 className="section-title" style={{ marginBottom: 0 }}>统计</h1>
         <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
       </div>
 
