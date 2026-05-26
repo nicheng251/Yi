@@ -15,6 +15,7 @@ use tauri::{
 use tracing::{info, error};
 use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 use serde::{Serialize, Deserialize};
 use std::path::PathBuf;
 
@@ -352,6 +353,51 @@ fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
 }
 
+#[tauri::command]
+fn set_global_shortcut(app: tauri::AppHandle, shortcut: String) -> Result<CommandResponse<()>, String> {
+    let _ = app.global_shortcut().unregister_all();
+    match shortcut.parse::<Shortcut>() {
+        Ok(s) => match app.global_shortcut().register(s) {
+            Ok(_) => {
+                info!("Global shortcut set: {}", shortcut);
+                Ok(CommandResponse::ok(()))
+            }
+            Err(e) => Ok(CommandResponse::err(&format!("Failed to register: {}", e))),
+        },
+        Err(e) => Ok(CommandResponse::err(&format!("Invalid shortcut: {}", e))),
+    }
+}
+
+fn init_global_shortcut(app: &tauri::AppHandle, state: &AppState) {
+    let db_guard = match state.db.lock() {
+        Ok(g) => g,
+        Err(_) => return,
+    };
+    let db = match db_guard.as_ref() {
+        Some(d) => d,
+        None => return,
+    };
+    let shortcut_str = db.get_setting("global_shortcut")
+        .ok()
+        .flatten()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "Ctrl+Shift+Y".to_string());
+    drop(db_guard);
+
+    match shortcut_str.parse::<Shortcut>() {
+        Ok(s) => {
+            if let Err(e) = app.global_shortcut().register(s) {
+                error!("Failed to register shortcut {}: {}", shortcut_str, e);
+            } else {
+                info!("Global shortcut registered: {}", shortcut_str);
+            }
+        }
+        Err(e) => {
+            error!("Invalid shortcut '{}': {}", shortcut_str, e);
+        }
+    }
+}
+
 fn setup_logging(app_data_dir: &PathBuf) {
     let logs_dir = app_data_dir.join("logs");
     std::fs::create_dir_all(&logs_dir).ok();
@@ -419,6 +465,7 @@ fn main() {
         .manage(app_state)
         .setup(|app| {
             setup_tray(app.handle())?;
+            init_global_shortcut(app.handle(), &app.state::<AppState>());
             info!("System tray initialized");
             Ok(())
         })
@@ -457,6 +504,7 @@ fn main() {
             get_app_version,
             get_app_data_dir,
             quit_app,
+            set_global_shortcut,
         ])
         .run(tauri::generate_context!());
 

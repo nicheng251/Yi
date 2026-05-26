@@ -81,19 +81,20 @@ export default function Settings() {
     setCapturing(true);
   }
 
-  function handleCaptureKey(e: React.KeyboardEvent) {
+  async function handleCaptureKey(e: React.KeyboardEvent) {
     e.preventDefault();
     e.stopPropagation();
     const shortcutStr = eventToShortcut(e);
-    if (!shortcutStr || shortcutStr === shortcut) return;
+    if (!shortcutStr) return;
     setShortcut(shortcutStr);
     setCapturing(false);
-    invoke("set_setting", { key: "global_shortcut", value: shortcutStr }).then(() => {
-      updateGlobalShortcut(shortcutStr);
+    try {
+      await invoke("set_setting", { key: "global_shortcut", value: shortcutStr });
+      await updateGlobalShortcut(shortcutStr);
       showToast("全局快捷键已更新", "success");
-    }).catch(() => {
-      showToast("保存快捷键失败", "error");
-    });
+    } catch (err) {
+      showToast("快捷键设置失败: " + String(err), "error");
+    }
   }
 
   async function checkAutostart() {
