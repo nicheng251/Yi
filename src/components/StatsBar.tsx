@@ -53,40 +53,26 @@ export function StatsBar({ currentProjectMinutes = 0 }: StatsBarProps) {
 
   if (loading) {
     return (
-      <div style={{
-        padding: "12px 16px",
-        backgroundColor: "var(--bg-secondary)",
-        borderRadius: 8,
-        display: "flex",
-        gap: 24,
-        fontSize: 14,
-      }}>
-        <span style={{ color: "var(--text-secondary)" }}>加载中...</span>
+      <div className="stats-bar">
+        <span className="loading">加载中...</span>
       </div>
     );
   }
 
   return (
-    <div style={{
-      padding: "12px 16px",
-      backgroundColor: "var(--bg-secondary)",
-      borderRadius: 8,
-      display: "flex",
-      gap: 24,
-      fontSize: 14,
-    }}>
+    <div className="stats-bar">
       <div>
-        <span style={{ color: "var(--text-secondary)" }}>今日 </span>
-        <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{formatMinutes(todayMinutes)}</span>
+        <span className="text-secondary">今日 </span>
+        <span className="text-primary">{formatMinutes(todayMinutes)}</span>
       </div>
       <div>
-        <span style={{ color: "var(--text-secondary)" }}>本周 </span>
-        <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{formatMinutes(weekMinutes)}</span>
+        <span className="text-secondary">本周 </span>
+        <span className="text-primary">{formatMinutes(weekMinutes)}</span>
       </div>
       {currentProjectMinutes > 0 && (
         <div>
-          <span style={{ color: "var(--text-secondary)" }}>本次 </span>
-          <span style={{ fontWeight: 600, color: "var(--accent)" }}>{formatMinutes(currentProjectMinutes)}</span>
+          <span className="text-secondary">本次 </span>
+          <span className="text-accent" style={{ fontWeight: 600 }}>{formatMinutes(currentProjectMinutes)}</span>
         </div>
       )}
     </div>

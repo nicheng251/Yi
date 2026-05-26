@@ -186,7 +186,7 @@ export default function Settings() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>外观</h2>
+          <h2 className="settings-group-title">外观</h2>
           <div className="flex-between stat-card">
             <span>深色模式</span>
             <Toggle checked={theme === "dark"} onChange={(checked) => setTheme(checked ? "dark" : "light")} />
@@ -194,7 +194,7 @@ export default function Settings() {
         </div>
 
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>系统</h2>
+          <h2 className="settings-group-title">系统</h2>
           <div className="flex-between stat-card">
             <span>开机自启动</span>
             <Toggle checked={autostart} onChange={handleAutostartToggle} />
@@ -202,7 +202,7 @@ export default function Settings() {
         </div>
 
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>快捷键</h2>
+          <h2 className="settings-group-title">快捷键</h2>
           <div className="stat-card" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
               <span style={{ flex: 1 }}>全局显示/隐藏</span>
@@ -228,7 +228,7 @@ export default function Settings() {
         </div>
 
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>数据</h2>
+          <h2 className="settings-group-title">数据</h2>
           <div className="list">
             <button onClick={handleExport} className="list-item">
               导出数据 (JSON)
@@ -240,7 +240,7 @@ export default function Settings() {
         </div>
 
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>关于</h2>
+          <h2 className="settings-group-title">关于</h2>
           <div className="stat-card" style={{ flexDirection: "column", alignItems: "flex-start" }}>
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontWeight: 500 }}>Yi</span>

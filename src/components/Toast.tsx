@@ -50,21 +50,12 @@ export function useToast() {
 function ToastContainer({ toasts, onHide }: { toasts: Toast[]; onHide: (id: number) => void }) {
   if (toasts.length === 0) return null;
   return (
-    <div style={{ position: "fixed", bottom: 20, right: 20, display: "flex", flexDirection: "column", gap: 8, zIndex: 9999 }}>
+    <div className="toast-wrapper">
       {toasts.map((toast) => (
         <div
           key={toast.id}
           onClick={() => onHide(toast.id)}
-          style={{
-            padding: "12px 20px",
-            borderRadius: 8,
-            backgroundColor: toast.type === "error" ? "var(--danger)" : toast.type === "success" ? "var(--success)" : "var(--accent)",
-            color: "white",
-            cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            fontWeight: 500,
-            maxWidth: 300,
-          }}
+          className={`toast-item ${toast.type}`}
         >
           {toast.message}
         </div>

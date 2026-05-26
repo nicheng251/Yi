@@ -1,16 +1,19 @@
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 
 export const CurrentTimer = memo(function CurrentTimer({ startTime }: { startTime: number }) {
   const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(startTime);
+  startRef.current = startTime;
 
   useEffect(() => {
+    let frameId: number;
     const update = () => {
-      const diff = Math.floor((Date.now() - startTime * 1000) / 60000);
-      setElapsed(diff);
+      const diff = Math.floor((Date.now() - startRef.current * 1000) / 60000);
+      setElapsed((prev) => (prev !== diff ? diff : prev));
+      frameId = requestAnimationFrame(update);
     };
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
+    frameId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(frameId);
   }, [startTime]);
 
   return <span>{elapsed} 分钟</span>;

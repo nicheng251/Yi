@@ -118,33 +118,11 @@ function App() {
   );
 }
 
-function NavLink({ to, children, hint, style }: { to: string; children: React.ReactNode; hint?: string; style?: React.CSSProperties }) {
+function NavLink({ to, children, hint }: { to: string; children: React.ReactNode; hint?: string }) {
   return (
-    <Link
-      to={to}
-      title={hint || ""}
-      style={{
-        padding: "10px 12px",
-        borderRadius: 8,
-        color: "var(--text-secondary)",
-        transition: "all 0.15s",
-        textDecoration: "none",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        ...style
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = "var(--bg-tertiary)";
-        e.currentTarget.style.color = "var(--text-primary)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = "transparent";
-        e.currentTarget.style.color = "var(--text-secondary)";
-      }}
-    >
+    <Link to={to} title={hint || ""} className="nav-link">
       <span>{children}</span>
-      {hint && <span style={{ fontSize: 11, color: "var(--text-secondary)", opacity: 0.6 }}>{hint}</span>}
+      {hint && <span className="nav-link-hint">{hint}</span>}
     </Link>
   );
 }
