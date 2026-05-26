@@ -9,6 +9,7 @@ import { useSettingsStore } from "./store/settings";
 import { useTimerStore } from "./store/timer";
 import { ToastProvider } from "./components/Toast";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { TitleBar } from "./components/TitleBar";
 import { useBrowserRestrictions } from "./hooks/useBrowserRestrictions";
 import { useShortcut } from "./hooks/useShortcut";
 import { useGlobalShortcut } from "./hooks/useGlobalShortcut";
@@ -88,7 +89,9 @@ function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
-        <div style={{ display: "flex", height: "100vh" }}>
+        <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+          <TitleBar />
+          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
           <nav className="sidebar">
             <div className="sidebar-nav">
               {NAV_LINKS.map(({ to, label, hint }) => (
@@ -107,6 +110,7 @@ function App() {
             </Routes>
           </main>
         </div>
+      </div>
       </ToastProvider>
     </ErrorBoundary>
   );
