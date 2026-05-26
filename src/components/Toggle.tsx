@@ -13,7 +13,6 @@ export function Toggle({ checked, onChange }: ToggleProps) {
         borderRadius: 12,
         backgroundColor: checked ? "var(--accent)" : "var(--bg-tertiary)",
         position: "relative",
-        transition: "background-color 0.2s",
         border: "none",
         cursor: "pointer",
         padding: 0,
@@ -28,7 +27,6 @@ export function Toggle({ checked, onChange }: ToggleProps) {
           position: "absolute",
           top: 2,
           left: checked ? 26 : 2,
-          transition: "left 0.2s",
         }}
       />
     </button>
