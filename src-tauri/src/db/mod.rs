@@ -62,19 +62,6 @@ pub struct DailySessionStat {
     pub minutes: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DailyFocus {
-    pub date: String,
-    pub totalMinutes: i64,
-    pub projects: Vec<ProjectFocus>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ProjectFocus {
-    pub name: String,
-    pub minutes: i64,
-}
-
 pub struct Database {
     pub conn: Mutex<Connection>,
 }
