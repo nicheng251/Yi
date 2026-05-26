@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { invoke } from "@tauri-apps/api/core";
-import { CommandResponse, Session } from "../types";
+import { Session } from "../types";
+import { ipc } from "../ipc";
 
 interface TimerState {
   activeSession: Session | null;
@@ -28,7 +28,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       if (get().activeSession) {
         await get().stopTimer();
       }
-      const res = (await invoke("start_session", { projectId })) as CommandResponse<Session>;
+      const res = await ipc.sessions.start(projectId);
       if (res.success && res.data) {
         set({ activeSession: res.data, loading: false });
         return true;
@@ -47,7 +47,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
     set({ loading: true, error: null });
     try {
-      const res = (await invoke("end_session", { sessionId: session.id })) as CommandResponse<null>;
+      const res = await ipc.sessions.end(session.id);
       if (res.success) {
         set({ activeSession: null, loading: false });
         localStorage.setItem("timer_session_changed", Date.now().toString());
@@ -65,10 +65,11 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     const session = get().activeSession;
     if (!session) return;
     try {
-      await invoke("set_setting", { key: "active_session_id", value: session.id });
-      await invoke("set_setting", { key: "active_session_project", value: session.project_id });
-      await invoke("set_setting", { key: "active_session_start", value: String(session.started_at) });
-      localStorage.setItem("timer_session_changed", Date.now().toString());
+      await Promise.all([
+        ipc.settings.set("active_session_id", session.id),
+        ipc.settings.set("active_session_project", session.project_id),
+        ipc.settings.set("active_session_start", String(session.started_at)),
+      ]);
     } catch (e) {
       console.error("Failed to save timer session:", e);
     }
@@ -76,27 +77,22 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
   loadTimerSession: async () => {
     try {
-      const idRes = (await invoke("get_setting", { key: "active_session_id" })) as CommandResponse<string | null>;
-      const projectRes = (await invoke("get_setting", { key: "active_session_project" })) as CommandResponse<string | null>;
-      const startRes = (await invoke("get_setting", { key: "active_session_start" })) as CommandResponse<string | null>;
+      const [idRes, projectRes, startRes] = await Promise.all([
+        ipc.settings.get("active_session_id"),
+        ipc.settings.get("active_session_project"),
+        ipc.settings.get("active_session_start"),
+      ]);
 
       if (idRes.success && idRes.data && projectRes.success && projectRes.data && startRes.success && startRes.data) {
-        const savedSessionId = idRes.data;
-
-        const activeRes = (await invoke("get_active_session")) as CommandResponse<Session | null>;
-        if (activeRes.success && activeRes.data && activeRes.data.id === savedSessionId) {
-          const session: Session = {
-            id: activeRes.data.id,
-            project_id: activeRes.data.project_id,
-            started_at: activeRes.data.started_at,
-            ended_at: activeRes.data.ended_at,
-            minutes: activeRes.data.minutes,
-          };
-          set({ activeSession: session });
+        const activeRes = await ipc.sessions.active();
+        if (activeRes.success && activeRes.data && activeRes.data.id === idRes.data) {
+          set({ activeSession: activeRes.data });
         } else {
-          await invoke("set_setting", { key: "active_session_id", value: "" });
-          await invoke("set_setting", { key: "active_session_project", value: "" });
-          await invoke("set_setting", { key: "active_session_start", value: "" });
+          await Promise.all([
+            ipc.settings.set("active_session_id", ""),
+            ipc.settings.set("active_session_project", ""),
+            ipc.settings.set("active_session_start", ""),
+          ]);
           set({ activeSession: null });
         }
       }

@@ -192,12 +192,12 @@ fn get_daily_records_for_month(year: i32, month: i32, state: State<AppState>) ->
 
 #[tauri::command]
 fn save_daily_record(date: String, content: String, state: State<AppState>) -> Result<CommandResponse<db::DailyRecord>, String> {
-    with_db!(state, |db| db.create_or_update_daily_record(&date, &content))
+    with_db!(state, |db| db.save_daily_record(&date, &content))
 }
 
 #[tauri::command]
 fn search_records(query: String, state: State<AppState>) -> Result<CommandResponse<Vec<db::DailyRecord>>, String> {
-    with_db!(state, |db| db.search_daily_records(&query))
+    with_db!(state, |db| db.search_records(&query))
 }
 
 #[tauri::command]
