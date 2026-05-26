@@ -1,7 +1,7 @@
 # Yi - Focus Productivity Tool
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.4-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.2.6-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg" alt="Platform">
   <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="License">
 </p>
@@ -65,6 +65,18 @@
 ---
 
 ## 🚀 Getting Started
+
+### 🎮 Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+1` | Home (project list) |
+| `Ctrl+2` | Results (daily records) |
+| `Ctrl+3` | Archive |
+| `Ctrl+4` | Statistics |
+| `Ctrl+5` | Settings |
+| `Ctrl+N` | New project (home page) |
+| `Ctrl+Shift+Y` | Show/hide window (configurable) |
 
 ### Prerequisites
 

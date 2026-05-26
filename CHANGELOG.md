@@ -2,7 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.1] - 2025-05-24
+## [0.2.6] - 2025-05-26
+
+### Added
+- **Keyboard shortcuts** - Ctrl+1~5 page navigation, Ctrl+N new project
+- **Global shortcut** - Configurable show/hide shortcut (default Ctrl+Shift+Y)
+- **IPC abstraction layer** - `src/ipc/index.ts` with type-safe wrappers for all backend commands
+- **Heatmap calendar** - Stats calendar uses color intensity instead of text for focus duration
+- **Design tokens** - Added `--surface`, `--shadow-sm`, `--accent-soft`, `--border-soft`, `--radius-*`
+- **Focus indicators** - Added `:focus-visible` for keyboard navigation
+
+### Fixed
+- **Statistics date range bug** - `loadStatistics` now uses `calendarDate` instead of `Date.now()`
+- **Archive button position** - Button moved from content area to item-right
+- **Update check endpoint** - Fixed broken GitHub release URL in updater config
+- **StatsBar timestamp type** - Changed `String(timestamp)` to `number` for backend `i64`
+- **Settings dark mode animation** - Removed CSS transitions causing flicker on theme switch
+- **Global shortcut handler** - Rust-side `with_handler` replaces unreliable JS API registration
+- **npm native binding** - Restored missing `@tauri-apps/cli-linux-x64-gnu` binary
+- **SQL injection** - `query_projects` changed from string interpolation to parameterized `?1`
+
+### Refactored
+- **db.rs modularization** - Single 849-line file split into `mod.rs` + 5 submodules
+- **CSS migration** - ~120 lines of inline styles moved to CSS classes
+- **useAutoSave** - Removed duplicate save logic in `useEffect`
+- **loadTimerSession** - 4 sequential IPC calls parallelized with `Promise.all`
+- **IPC abstraction** - All `invoke()` calls centralized in `src/ipc/index.ts`
+- **NavLink** - JS hover handlers replaced with CSS `:hover`
+
+### Performance
+- **CurrentTimer** - `setInterval` replaced with `requestAnimationFrame`
+- **CSS transitions removed** - Theme switch is instant (zero `transition` properties)
+- **Calendar hover** - `transform: scale(1.03)` replaced with `outline` to avoid layout thrash
+
+## [0.2.5] - 2025-05-25
+
+### Added
+- Project reordering through drag-and-drop
+- Search functionality for daily records
+- Auto-backup on first launch
+
+### Fixed
+- Browser restrictions (prevent devtools, zoom, navigation)
+- Auto-save on exit
+
+## [0.2.4] - 2025-05-24
 
 ### Added
 

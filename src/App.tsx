@@ -97,6 +97,20 @@ function App() {
     return <div style={{ padding: 20 }}>Loading...</div>;
   }
 
+  if (!tauriAvailable) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", padding: 40, textAlign: "center", backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
+        <h2 style={{ color: "var(--danger)", marginBottom: 16 }}>运行环境不支持</h2>
+        <p style={{ color: "var(--text-secondary)", marginBottom: 24 }}>
+          请使用 <code style={{ padding: "2px 8px", backgroundColor: "var(--bg-tertiary)", borderRadius: 4 }}>npm run tauri dev</code> 而非 <code style={{ padding: "2px 8px", backgroundColor: "var(--bg-tertiary)", borderRadius: 4 }}>npm run dev</code> 启动
+        </p>
+        <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
+          Yi 需要 Tauri 运行时才能正常工作
+        </p>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <ToastProvider>

@@ -2,60 +2,61 @@
 
 This file provides context for AI assistants working on this project.
 
-## Project Type: Node.js
+## Project Type: Tauri v2 + React + Rust
 
 ### Commands
 - Install: `npm install`
+- Dev (Tauri): `npm run tauri dev`
+- Dev (Vite only): `npm run dev`
+- TypeScript check: `npx tsc --noEmit`
+- Rust check: `cd src-tauri && cargo check`
+- Build: `npm run tauri build`
 - Test: `npm test`
-- Build: `npm run build`
-- Start: `npm start`
 
-### Framework: Vite
+### Framework: Tauri v2 + Vite + React 18
 
-### Documentation
-See README.md for project overview.
+### Key Architecture
+- **Frontend**: React + Vite + TypeScript + Zustand
+- **Backend**: Rust + SQLite (rusqlite)
+- **IPC**: Centralized in `src/ipc/index.ts` — all `invoke()` calls go through typed wrappers
+- **DB**: `src-tauri/src/db/` — modularized (projects, sessions, records, settings, import_export)
+- **State**: Zustand stores in `src/store/`
+- **Routing**: react-router-dom (client-side)
+
+### Keyboard Shortcuts
+- `Ctrl+1~5`: Page navigation
+- `Ctrl+N`: New project (home)
+- `Ctrl+Shift+Y`: Global show/hide (configurable in Settings)
+
+### Design Tokens
+CSS variables in `src/styles/global.css`:
+- `--surface`, `--shadow-sm/md`, `--accent-soft`, `--border-soft`
+- `--radius-sm/md/lg`
+- No CSS `transition` properties (instant theme switching)
 
 ### Version Control
-This project uses Git. See .gitignore for excluded files.
+This project uses Git. See `.gitignore` for excluded files.
 
-## Agent Guidance
-
-<!-- How should an AI agent approach this project? Fill in tool gotchas, -->
-<!-- file patterns to avoid, and anything that helps a model navigate -->
-<!-- the codebase without reading every file. -->
-
-- **CodeWhale reads this file as:** <!-- WHALE.md (CodeWhale-native) or AGENTS.md (compatible with other agents) -->
-- **Read-only surface:** <!-- Which directories can the agent read but not write? -->
-- **Never edit:** <!-- Files that are generated, vendored, or owned by another tool -->
-- **Always test with:** <!-- The single command that validates a change (e.g. `cargo test -p foo`) -->
+### Agent Guidance
+- **Never edit**: `src-tauri/target/`, `node_modules/`, `dist/`, `*.lock`
+- **Read-only surface**: `src-tauri/gen/`, `src-tauri/icons/`
+- **Always test with**: `npx tsc --noEmit && cd src-tauri && cargo check`
+- **Style rule**: Prefer CSS classes over inline styles; no `transition` properties
 
 ## Architecture
 
-<!-- Describe the high-level structure. What are the key modules and how -->
-<!-- do they connect? Focus on the context a new contributor would need. -->
-
 ### Entry Points
-<!-- Where does execution start? Binary entry, request handler, main loop? -->
+- `src/main.tsx` — React app bootstrap
+- `src/App.tsx` — Router + layout + global shortcuts
+- `src-tauri/src/main.rs` — Tauri app setup + IPC command handlers
 
 ### Key Modules
-<!-- List the 3-6 most important directories/files and their role -->
+- `src/ipc/` — IPC abstraction layer
+- `src/store/` — Zustand state stores
+- `src/pages/` — Page components (Home, Results, Archive, Statistics, Settings)
+- `src/components/` — Reusable UI components
+- `src/hooks/` — Custom React hooks
+- `src-tauri/src/db/` — Database access layer (6 modules)
 
 ### Data Flow
-<!-- How does a request / event / input travel through the system? -->
-
-## Cache Stability
-
-<!-- DeepSeek V4 uses a byte-stable prefix cache (128-token granularity). -->
-<!-- Keeping these things stable turn-over-turn saves ~90% on input tokens. -->
-
-- **Frequently-rebuilt files:** <!-- Generated code, lockfiles, build artifacts → mark as cache-churn -->
-- **Stable scaffolding:** <!-- Config files, project instructions, model cards → keep byte-stable -->
-- **Append, don't reorder:** <!-- New context goes at the end of the request; reordering invalidates cache -->
-
-## Guidelines
-
-- Follow existing code style and patterns
-- Write tests for new functionality
-- Keep changes focused and atomic
-- Document public APIs
-- Update this file when project conventions change
+User action → React component → `ipc.*()` → Tauri `invoke()` → Rust command → SQLite → Response → Zustand state update → UI re-render
