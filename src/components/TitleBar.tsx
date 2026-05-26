@@ -14,7 +14,6 @@ export function TitleBar() {
   return (
     <div className="titlebar">
       <div className="titlebar-drag">
-        <img src="/icon.png" className="titlebar-icon" alt="" />
         <span className="titlebar-appname">Yi</span>
       </div>
       <div className="titlebar-controls">

@@ -205,7 +205,6 @@ a {
   -webkit-app-region: drag;
 }
 
-.titlebar-icon { width: 18px; height: 18px; }
 .titlebar-appname { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
 
 .titlebar-controls {
