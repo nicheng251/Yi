@@ -13,7 +13,7 @@ export function DayDetailModal({ selectedDay, onClose }: DayDetailModalProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div className="modal-header">
           <div>
             <div style={{ fontSize: 16, fontWeight: 600 }}>
               {format(new Date(selectedDay.date), "yyyy 年 MM 月 dd 日", { locale: zhCN })}
@@ -22,41 +22,17 @@ export function DayDetailModal({ selectedDay, onClose }: DayDetailModalProps) {
               {format(new Date(selectedDay.date), "EEEE", { locale: zhCN })}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: 24,
-              cursor: "pointer",
-              color: "var(--text-secondary)",
-              padding: 4,
-            }}
-          >
-            ×
-          </button>
+          <button onClick={onClose} className="modal-close-btn">×</button>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {selectedDay.projects.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 16, color: "var(--text-secondary)" }}>
-              暂无专注数据
-            </div>
+            <div className="modal-empty">暂无专注数据</div>
           ) : (
             selectedDay.projects
               .sort((a, b) => b.minutes - a.minutes)
               .map((project, index) => (
-                <div
-                  key={index}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "8px 12px",
-                    backgroundColor: "var(--bg-secondary)",
-                    borderRadius: 6,
-                  }}
-                >
+                <div key={index} className="modal-project-item">
                   <span style={{ fontSize: 14 }}>{project.name}</span>
                   <span style={{ fontSize: 14, color: "var(--text-secondary)" }}>
                     {formatMinutes(project.minutes)}
@@ -66,16 +42,7 @@ export function DayDetailModal({ selectedDay, onClose }: DayDetailModalProps) {
           )}
         </div>
 
-        <div
-          style={{
-            marginTop: 16,
-            paddingTop: 16,
-            borderTop: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <div className="modal-total">
           <span style={{ fontSize: 14, fontWeight: 500 }}>合计</span>
           <span style={{ fontSize: 14, fontWeight: 600 }}>{formatMinutes(selectedDay.totalMinutes)}</span>
         </div>

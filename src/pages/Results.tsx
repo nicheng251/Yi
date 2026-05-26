@@ -159,7 +159,7 @@ export default function Results() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="section-title" style={{ marginBottom: 0 }}>成果记录</h1>
+        <h1 className="section-title" style={{ marginBottom: 0 }}>📝 成果记录</h1>
         <div className="flex-row" style={{ gap: 8 }}>
           <input
             type="text"
@@ -173,7 +173,7 @@ export default function Results() {
           <button onClick={handleSearch} className="btn-primary">
             搜索
           </button>
-          <div style={{ width: 1, height: 24, backgroundColor: "var(--border)", margin: "0 8px" }} />
+          <div className="v-divider" />
           <button
             onClick={() => handleSetViewMode('day')}
             className={viewMode === 'day' ? 'toggle-btn active' : 'toggle-btn'}

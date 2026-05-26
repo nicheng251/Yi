@@ -89,20 +89,14 @@ function App() {
     <ErrorBoundary>
       <ToastProvider>
         <div style={{ display: "flex", height: "100vh" }}>
-          <nav style={{
-            width: 200,
-            borderRight: "1px solid var(--border)",
-            padding: 16,
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-            backgroundColor: "var(--bg-secondary)"
-          }}>
-            {NAV_LINKS.map(({ to, label, hint }) => (
-              <NavLink key={to} to={to} hint={hint}>{label}</NavLink>
-            ))}
+          <nav className="sidebar">
+            <div className="sidebar-nav">
+              {NAV_LINKS.map(({ to, label, hint }) => (
+                <NavLink key={to} to={to} hint={hint}>{label}</NavLink>
+              ))}
+            </div>
           </nav>
-          <main style={{ flex: 1, overflow: "auto" }}>
+          <main className="main-content">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/results" element={<Results />} />

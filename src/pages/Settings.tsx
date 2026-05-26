@@ -182,7 +182,7 @@ export default function Settings() {
 
   return (
     <div className="settings-section">
-      <h1 className="section-title">设置</h1>
+      <h1 className="section-title">⚙️ 设置</h1>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <div>

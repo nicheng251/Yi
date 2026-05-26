@@ -72,7 +72,7 @@ export default function Archive() {
 
   return (
     <div className="page">
-      <h1 className="section-title">归档</h1>
+      <h1 className="section-title">📦 归档</h1>
 
       <div className="page-content">
         {projects.length === 0 ? (
