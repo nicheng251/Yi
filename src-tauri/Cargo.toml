@@ -1,6 +1,6 @@
 [package]
 name = "yi"
-version = "0.2.5"
+version = "0.2.6"
 description = "Yi - Focus Productivity Tool"
 authors = ["you"]
 edition = "2021"
