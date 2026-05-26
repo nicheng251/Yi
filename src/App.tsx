@@ -29,6 +29,8 @@ function App() {
   const saveTimerSessionRef = useRef(saveTimerSession);
   const navigate = useNavigate();
 
+  const [tauriAvailable] = useState(() => typeof (window as any).__TAURI_INTERNALS__ !== "undefined");
+
   useBrowserRestrictions();
   useGlobalShortcut();
 
@@ -80,6 +82,16 @@ function App() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
+
+  useEffect(() => {
+    if (!tauriAvailable) {
+      console.warn(
+        "%c⚠️ Yi 未运行在 Tauri 环境中！",
+        "font-size:16px;font-weight:bold;color:red",
+        "\n请使用 `npm run tauri dev` 而非 `npm run dev`"
+      );
+    }
+  }, [tauriAvailable]);
 
   if (!ready) {
     return <div style={{ padding: 20 }}>Loading...</div>;
