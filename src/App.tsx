@@ -11,6 +11,7 @@ import { ToastProvider } from "./components/Toast";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useBrowserRestrictions } from "./hooks/useBrowserRestrictions";
 import { useShortcut } from "./hooks/useShortcut";
+import { useGlobalShortcut } from "./hooks/useGlobalShortcut";
 
 const NAV_LINKS = [
   { to: "/",        label: "首页",     hint: "Ctrl+1" },
@@ -29,6 +30,7 @@ function App() {
   const navigate = useNavigate();
 
   useBrowserRestrictions();
+  useGlobalShortcut();
 
   // Ctrl+1~5 导航快捷键
   useShortcut((e) => {
