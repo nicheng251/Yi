@@ -424,6 +424,20 @@
   padding: 16px;
   background-color: var(--bg-secondary);
   border-radius: 8px;
+  text-align: left;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+  border: 1px solid transparent;
+}
+
+.list-item:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border);
+}
+
+.list-item:active {
+  border-color: var(--accent);
 }
 
 /* Modal */

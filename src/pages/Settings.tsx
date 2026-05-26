@@ -128,10 +128,10 @@ export default function Settings() {
         <div>
           <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>数据</h2>
           <div className="list">
-            <button onClick={handleExport} className="list-item" style={{ textAlign: "left" }}>
+            <button onClick={handleExport} className="list-item">
               导出数据 (JSON)
             </button>
-            <button onClick={handleImport} className="list-item" style={{ textAlign: "left" }}>
+            <button onClick={handleImport} className="list-item">
               导入数据 (JSON)
             </button>
           </div>
