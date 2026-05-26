@@ -409,6 +409,20 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_shortcut("Ctrl+Shift+Y")
+                .expect("failed to register global shortcut")
+                .with_handler(|app, _shortcut, event| {
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(),
+        )
         .plugin(tauri_plugin_single_instance::init(|app, _payload, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();

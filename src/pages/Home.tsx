@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useSortableSensors } from "../hooks/useSortableSensors";
 import { useDragReorder } from "../hooks/useDragReorder";
+import { useShortcut } from "../hooks/useShortcut";
 
 type SortOrder = "created" | "updated" | "name" | "minutes" | "last_active" | "custom";
 
@@ -29,6 +30,20 @@ export default function Home() {
   const { showToast } = useToast();
 
   const sensors = useSortableSensors();
+
+  // 快捷键: N 新建项目, Space 停止计时
+  useShortcut((e) => {
+    if (e.key.toLowerCase() === "n" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      setShowNewProject(true);
+    }
+    if (e.key === " " && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      if (activeSession) {
+        handleStopTimer();
+      }
+    }
+  });
 
   useEffect(() => {
     loadProjects();

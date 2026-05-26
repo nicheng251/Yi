@@ -8,6 +8,7 @@
     "core:webview:deny-internal-toggle-devtools",
     "core:webview:deny-set-webview-zoom",
     "updater:default",
-    "autostart:default"
+    "autostart:default",
+    "global-shortcut:default"
   ]
 }
