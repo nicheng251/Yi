@@ -427,7 +427,6 @@
   text-align: left;
   color: var(--text-primary);
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
   border: 1px solid transparent;
 }
 
