@@ -225,6 +225,10 @@ a {
   cursor: pointer;
 }
 
+.titlebar-btn svg {
+  pointer-events: none;
+}
+
 .titlebar-btn:hover {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
