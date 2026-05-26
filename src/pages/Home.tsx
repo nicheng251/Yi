@@ -31,17 +31,11 @@ export default function Home() {
 
   const sensors = useSortableSensors();
 
-  // 快捷键: N 新建项目, Space 停止计时
+  // 快捷键: Ctrl+N 新建项目
   useShortcut((e) => {
-    if (e.key.toLowerCase() === "n" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "n") {
       e.preventDefault();
       setShowNewProject(true);
-    }
-    if (e.key === " " && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      e.preventDefault();
-      if (activeSession) {
-        handleStopTimer();
-      }
     }
   });
 
