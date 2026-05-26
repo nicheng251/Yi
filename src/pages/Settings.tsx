@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSettingsStore } from "../store/settings";
 import { useTimerStore } from "../store/timer";
@@ -10,13 +10,41 @@ import { Toggle } from "../components/Toggle";
 import { useAutoUpdate } from "../hooks/useAutoUpdate";
 import { updateGlobalShortcut } from "../hooks/useGlobalShortcut";
 
+function CaptureBox({ onCapture, onCancel }: { onCapture: (e: React.KeyboardEvent) => void; onCancel: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { ref.current?.focus(); }, []);
+  return (
+    <div
+      ref={ref}
+      tabIndex={0}
+      onKeyDown={onCapture}
+      onBlur={onCancel}
+      style={{
+        width: 180,
+        padding: "6px 12px",
+        backgroundColor: "var(--accent)",
+        color: "white",
+        borderRadius: 8,
+        textAlign: "center",
+        fontFamily: "monospace",
+        fontSize: 13,
+        outline: "2px solid var(--accent-hover)",
+        outlineOffset: 2,
+        cursor: "default",
+      }}
+    >
+      按下快捷键...
+    </div>
+  );
+}
+
 export default function Settings() {
   const { theme, setTheme, autostart, setAutostart } = useSettingsStore();
   const { clearActiveSession } = useTimerStore();
   const { showToast } = useToast();
   const [version, setVersion] = useState<string>("");
   const [shortcut, setShortcut] = useState("Ctrl+Shift+Y");
-  const [editingShortcut, setEditingShortcut] = useState(false);
+  const [capturing, setCapturing] = useState(false);
   const { updateInfo, status, progress, checkUpdate, downloadAndInstall } = useAutoUpdate();
 
   useEffect(() => {
@@ -34,18 +62,38 @@ export default function Settings() {
     } catch {}
   }
 
-  async function handleShortcutChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value.trim();
-    if (!val || !e.currentTarget.checkValidity()) return;
-    setShortcut(val);
-    setEditingShortcut(false);
-    try {
-      await invoke("set_setting", { key: "global_shortcut", value: val });
-      updateGlobalShortcut(val);
+  function eventToShortcut(e: React.KeyboardEvent): string {
+    const parts: string[] = [];
+    if ((e.metaKey || e.ctrlKey) && e.key !== "Control" && e.key !== "Meta") parts.push("Ctrl");
+    if (e.altKey && e.key !== "Alt") parts.push("Alt");
+    if (e.shiftKey && e.key !== "Shift") parts.push("Shift");
+    if (["Control", "Meta", "Alt", "Shift"].includes(e.key)) return "";
+    const keyMap: Record<string, string> = {
+      " ": "Space", "ArrowUp": "Up", "ArrowDown": "Down",
+      "ArrowLeft": "Left", "ArrowRight": "Right",
+    };
+    const key = keyMap[e.key] || e.key.toUpperCase();
+    parts.push(key);
+    return parts.join("+");
+  }
+
+  function startCapture() {
+    setCapturing(true);
+  }
+
+  function handleCaptureKey(e: React.KeyboardEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const shortcutStr = eventToShortcut(e);
+    if (!shortcutStr || shortcutStr === shortcut) return;
+    setShortcut(shortcutStr);
+    setCapturing(false);
+    invoke("set_setting", { key: "global_shortcut", value: shortcutStr }).then(() => {
+      updateGlobalShortcut(shortcutStr);
       showToast("全局快捷键已更新", "success");
-    } catch (err) {
+    }).catch(() => {
       showToast("保存快捷键失败", "error");
-    }
+    });
   }
 
   async function checkAutostart() {
@@ -157,21 +205,8 @@ export default function Settings() {
           <div className="stat-card" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
               <span style={{ flex: 1 }}>全局显示/隐藏</span>
-              {editingShortcut ? (
-                <input
-                  type="text"
-                  defaultValue={shortcut}
-                  autoFocus
-                  className="input"
-                  style={{ width: 180, fontFamily: "monospace", textAlign: "center" }}
-                  placeholder="例如: Ctrl+Shift+Y"
-                  pattern="^(Ctrl\+)?(Alt\+)?(Shift\+)?[A-Za-z0-9]$"
-                  onBlur={handleShortcutChange}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleShortcutChange(e as any);
-                    if (e.key === "Escape") setEditingShortcut(false);
-                  }}
-                />
+              {capturing ? (
+                <CaptureBox onCapture={handleCaptureKey} onCancel={() => setCapturing(false)} />
               ) : (
                 <>
                   <code style={{
@@ -181,12 +216,12 @@ export default function Settings() {
                     fontSize: 13,
                     fontFamily: "monospace",
                   }}>{shortcut}</code>
-                  <button className="btn" onClick={() => setEditingShortcut(true)}>修改</button>
+                  <button className="btn" onClick={startCapture}>修改</button>
                 </>
               )}
             </div>
             <div className="text-secondary" style={{ fontSize: 12 }}>
-              修改后立即生效 · 支持格式: Ctrl/Alt/Shift + 按键
+              点击修改后直接按下新快捷键即可
             </div>
           </div>
         </div>
