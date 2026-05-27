@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { format, subDays, addDays } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { CommandResponse, DailyRecord } from "../types";
 import { useTimerStore } from "../store/timer";
 import { ResultsCalendar } from "../components/ResultsCalendar";
@@ -9,6 +10,7 @@ import { SearchResults } from "../components/SearchResults";
 import { useToast } from "../components/Toast";
 
 export default function Results() {
+  const { t } = useTranslation();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [records, setRecords] = useState<Map<string, DailyRecord>>(new Map());
   const [viewMode, setViewMode] = useState<'month' | 'day'>('day');
@@ -101,7 +103,7 @@ export default function Results() {
       setRecords(newRecords);
     } catch (e) {
       console.error("Failed to load records:", e);
-      showToast("加载记录失败", "error");
+      showToast(t("results.loadFailed"), "error");
     }
   }
 
@@ -119,7 +121,7 @@ export default function Results() {
       setIsDirty(false);
     } catch (e) {
       console.error("Failed to load record:", e);
-      showToast("加载记录失败", "error");
+      showToast(t("results.loadFailed"), "error");
     }
   }
 
@@ -132,7 +134,7 @@ export default function Results() {
       }
     } catch (e) {
       console.error("Failed to search:", e);
-      showToast("搜索失败", "error");
+      showToast(t("results.searchFailed"), "error");
     }
   }
 
@@ -159,32 +161,32 @@ export default function Results() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="section-title" style={{ marginBottom: 0 }}>成果记录</h1>
+        <h1 className="section-title" style={{ marginBottom: 0 }}>{t("results.title")}</h1>
         <div className="flex-row" style={{ gap: 8 }}>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder="搜索成果..."
+            placeholder={t("results.searchPlaceholder")}
             className="input"
             style={{ width: 200 }}
           />
           <button onClick={handleSearch} className="btn-primary">
-            搜索
+            {t("common.search")}
           </button>
           <div className="v-divider" />
           <button
             onClick={() => handleSetViewMode('day')}
             className={viewMode === 'day' ? 'toggle-btn active' : 'toggle-btn'}
           >
-            日视图
+            {t("results.dayView")}
           </button>
           <button
             onClick={() => handleSetViewMode('month')}
             className={viewMode === 'month' ? 'toggle-btn active' : 'toggle-btn'}
           >
-            月视图
+            {t("results.monthView")}
           </button>
         </div>
       </div>

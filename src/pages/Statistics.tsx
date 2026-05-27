@@ -14,15 +14,14 @@ import {
   addDays,
   subDays,
 } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import { zhCN, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import { ViewMode, CommandResponse, ProjectStat, DailySessionStat, DailyFocus } from "../types";
 import { formatMinutes } from "../utils/format";
 import { ViewModeToggle } from "../components/ViewModeToggle";
 import { StatsCalendar } from "../components/StatsCalendar";
 import { StatsSummary } from "../components/StatsSummary";
 import { DayDetailModal } from "../components/DayDetailModal";
-
-// ViewMode now defined in src/types/index.ts
 
 interface CalendarDay {
   date: Date;
@@ -36,6 +35,8 @@ interface EmptyDay {
 }
 
 export default function Statistics() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "en" ? enUS : zhCN;
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [stats, setStats] = useState<ProjectStat[]>([]);
   const [totalMinutes, setTotalMinutes] = useState(0);
@@ -64,29 +65,29 @@ export default function Statistics() {
     switch (viewMode) {
       case "day":
         start = startOfDay(base);
-        end = addDays(startOfDay(base), 1);        // 明天 00:00
+        end = addDays(startOfDay(base), 1);
         prevStart = subDays(start, 1);
         break;
       case "week":
         start = startOfWeek(base, { weekStartsOn: 1 });
-        end = addDays(start, 7);                    // 下周一 00:00
+        end = addDays(start, 7);
         prevStart = subWeeks(start, 1);
         break;
       case "month":
         start = startOfMonth(base);
-        end = startOfMonth(addMonths(base, 1));     // 下月1号 00:00
+        end = startOfMonth(addMonths(base, 1));
         prevStart = subMonths(start, 1);
         break;
       case "year":
         start = new Date(base.getFullYear(), 0, 1);
-        end = new Date(base.getFullYear() + 1, 0, 1);  // 下年1月1号 00:00
+        end = new Date(base.getFullYear() + 1, 0, 1);
         prevStart = new Date(base.getFullYear() - 1, 0, 1);
         break;
       default:
         return;
     }
 
-    const prevEnd = start;  // 上期区间 = [prevStart, start)
+    const prevEnd = start;
 
     try {
       const [currentRes, prevRes] = await Promise.all([
@@ -205,28 +206,28 @@ export default function Statistics() {
   }
 
   function getComparisonText(): string {
-    if (prevTotalMinutes === 0) return "（无上期数据）";
+    if (prevTotalMinutes === 0) return t("statistics.noPrevData");
     const diff = totalMinutes - prevTotalMinutes;
     const percent = Math.abs(Math.round((diff / prevTotalMinutes) * 100));
-    if (diff > 0) return `↑ 比上期多 ${percent}%`;
-    if (diff < 0) return `↓ 比上期少 ${percent}%`;
-    return "与上期持平";
+    if (diff > 0) return t("statistics.upFromPrev", { percent });
+    if (diff < 0) return t("statistics.downFromPrev", { percent });
+    return t("statistics.sameAsPrev");
   }
 
   function getViewPeriodText(): string {
     const date = calendarDate;
     switch (viewMode) {
       case "day":
-        return format(date, "yyyy 年 MM 月 dd 日", { locale: zhCN });
+        return format(date, t("dateFormats.fullDate"), { locale });
       case "week": {
         const start = startOfWeek(date, { weekStartsOn: 1 });
         const end = endOfWeek(date, { weekStartsOn: 1 });
-        return `${format(start, "M月d日")} - ${format(end, "M月d日")}`;
+        return `${format(start, t("dateFormats.monthDay"), { locale })} - ${format(end, t("dateFormats.monthDay"), { locale })}`;
       }
       case "month":
-        return format(date, "yyyy 年 MM 月", { locale: zhCN });
+        return format(date, t("dateFormats.yearMonth"), { locale });
       case "year":
-        return format(date, "yyyy 年", { locale: zhCN });
+        return format(date, t("dateFormats.year"), { locale });
       default:
         return "";
     }
@@ -269,7 +270,7 @@ export default function Statistics() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="section-title" style={{ marginBottom: 0 }}>统计</h1>
+        <h1 className="section-title" style={{ marginBottom: 0 }}>{t("statistics.title")}</h1>
         <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
       </div>
 
@@ -298,7 +299,7 @@ export default function Statistics() {
           <div className="flex-column gap-8">
             {stats.length === 0 ? (
               <div className="empty-state">
-                暂无专注数据
+                {t("statistics.emptyState")}
               </div>
             ) : (
               stats.map((stat, index) => (

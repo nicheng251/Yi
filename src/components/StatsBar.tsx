@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { startOfDay, startOfWeek, addDays } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { CommandResponse, ProjectStat } from "../types";
 import { formatMinutes } from "../utils/format";
 import { useTimerStore } from "../store/timer";
@@ -10,6 +11,7 @@ interface StatsBarProps {
 }
 
 export function StatsBar({ currentProjectMinutes = 0 }: StatsBarProps) {
+  const { t } = useTranslation();
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [weekMinutes, setWeekMinutes] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,7 @@ export function StatsBar({ currentProjectMinutes = 0 }: StatsBarProps) {
   if (loading) {
     return (
       <div className="stats-bar">
-        <span className="loading">加载中...</span>
+        <span className="loading">{t("common.loading")}</span>
       </div>
     );
   }
@@ -61,16 +63,16 @@ export function StatsBar({ currentProjectMinutes = 0 }: StatsBarProps) {
   return (
     <div className="stats-bar">
       <div>
-        <span className="text-secondary">今日 </span>
+        <span className="text-secondary">{t("stats.today")} </span>
         <span className="text-primary">{formatMinutes(todayMinutes)}</span>
       </div>
       <div>
-        <span className="text-secondary">本周 </span>
+        <span className="text-secondary">{t("stats.thisWeek")} </span>
         <span className="text-primary">{formatMinutes(weekMinutes)}</span>
       </div>
       {currentProjectMinutes > 0 && (
         <div>
-          <span className="text-secondary">本次 </span>
+          <span className="text-secondary">{t("home.thisSession")} </span>
           <span className="text-accent" style={{ fontWeight: 600 }}>{formatMinutes(currentProjectMinutes)}</span>
         </div>
       )}

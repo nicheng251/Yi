@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { CommandResponse, Project } from "../types";
 import {
   DndContext,
@@ -15,6 +16,7 @@ import { useToast } from "../components/Toast";
 import { useDragReorder } from "../hooks/useDragReorder";
 
 export default function Archive() {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
   const { showToast } = useToast();
 
@@ -32,7 +34,7 @@ export default function Archive() {
       }
     } catch (e) {
       console.error("Failed to load archived projects:", e);
-      showToast("加载归档项目失败", "error");
+      showToast(t("archivePage.loadFailed"), "error");
     }
   }
 
@@ -41,25 +43,25 @@ export default function Archive() {
       const res = (await invoke("unarchive_project", { id: projectId })) as CommandResponse<null>;
       if (res.success) {
         loadArchivedProjects();
-        showToast("项目已恢复", "success");
+        showToast(t("archivePage.restored"), "success");
       }
     } catch (e) {
       console.error("Failed to unarchive project:", e);
-      showToast("恢复项目失败", "error");
+      showToast(t("archivePage.restoreFailed"), "error");
     }
   }
 
   async function handleDelete(projectId: string) {
-    if (!confirm("确定要永久删除这个项目吗？所有相关数据将被删除，此操作不可撤销。")) return;
+    if (!confirm(t("archivePage.deleteConfirm"))) return;
     try {
       const res = (await invoke("delete_project", { id: projectId })) as CommandResponse<null>;
       if (res.success) {
         loadArchivedProjects();
-        showToast("项目已永久删除", "success");
+        showToast(t("archivePage.permanentlyDeleted"), "success");
       }
     } catch (e) {
       console.error("Failed to delete project:", e);
-      showToast("删除项目失败", "error");
+      showToast(t("archivePage.deleteFailed"), "error");
     }
   }
 
@@ -67,17 +69,17 @@ export default function Archive() {
     items: projects,
     getId: (p) => p.id,
     onReorder: setProjects,
-    onError: () => showToast("排序保存失败", "error"),
+    onError: () => showToast(t("archivePage.sortSaveFailed"), "error"),
   });
 
   return (
     <div className="page">
-      <h1 className="section-title">归档</h1>
+      <h1 className="section-title">{t("archivePage.title")}</h1>
 
       <div className="page-content">
         {projects.length === 0 ? (
           <div className="empty-state">
-            暂无归档的项目
+            {t("archivePage.emptyState")}
           </div>
         ) : (
           <DndContext

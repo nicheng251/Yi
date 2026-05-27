@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Project, Session } from "../types";
 import { IconButton, CurrentTimer } from "./IconButton";
 import { formatMinutes } from "../utils/format";
@@ -22,6 +23,8 @@ export function SortableProjectItem({
   onArchive,
   onDelete,
 }: SortableProjectItemProps) {
+  const { t } = useTranslation();
+
   return (
     <SortableItemBase project={project} onDelete={onDelete} actionButtons={
       <>
@@ -31,7 +34,7 @@ export function SortableProjectItem({
           <IconButton onClick={() => onStartTimer(project.id)} icon="play" />
         )}
         <button onClick={() => onArchive(project.id)} className="btn">
-          归档
+          {t("home.archive")}
         </button>
       </>
     }>
@@ -40,10 +43,10 @@ export function SortableProjectItem({
         <div className="text-secondary">
           {isRunning && activeSession ? (
             <span className="text-accent">
-              本次 <CurrentTimer startTime={activeSession.started_at} /> · 总计 {formatMinutes(project.total_minutes || 0)}
+              {t("home.thisSession")} <CurrentTimer startTime={activeSession.started_at} /> · {t("home.total")} {formatMinutes(project.total_minutes || 0)}
             </span>
           ) : (
-            <span>总计 {formatMinutes(project.total_minutes || 0)}</span>
+            <span>{t("home.total")} {formatMinutes(project.total_minutes || 0)}</span>
           )}
         </div>
       </div>

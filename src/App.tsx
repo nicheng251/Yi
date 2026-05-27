@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import Home from "./pages/Home";
 import Results from "./pages/Results";
 import Archive from "./pages/Archive";
@@ -13,15 +14,8 @@ import { useBrowserRestrictions } from "./hooks/useBrowserRestrictions";
 import { useShortcut } from "./hooks/useShortcut";
 import { useGlobalShortcut } from "./hooks/useGlobalShortcut";
 
-const NAV_LINKS = [
-  { to: "/",        label: "首页",     hint: "Ctrl+1" },
-  { to: "/results",  label: "成果记录", hint: "Ctrl+2" },
-  { to: "/archive",  label: "归档",     hint: "Ctrl+3" },
-  { to: "/statistics", label: "统计",   hint: "Ctrl+4" },
-  { to: "/settings", label: "设置",     hint: "Ctrl+5" },
-];
-
 function App() {
+  const { t } = useTranslation();
   const { theme, loadSettings } = useSettingsStore();
   const { loadTimerSession, saveTimerSession } = useTimerStore();
   const [ready, setReady] = useState(false);
@@ -33,6 +27,14 @@ function App() {
 
   useBrowserRestrictions();
   useGlobalShortcut();
+
+  const NAV_LINKS = [
+    { to: "/",        label: t("nav.home"),       hint: "Ctrl+1" },
+    { to: "/results",  label: t("nav.results"),    hint: "Ctrl+2" },
+    { to: "/archive",  label: t("nav.archive"),    hint: "Ctrl+3" },
+    { to: "/statistics", label: t("nav.statistics"), hint: "Ctrl+4" },
+    { to: "/settings", label: t("nav.settings"),   hint: "Ctrl+5" },
+  ];
 
   // Ctrl+1~5 导航快捷键
   useShortcut((e) => {
@@ -83,16 +85,6 @@ function App() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  useEffect(() => {
-    if (!tauriAvailable) {
-      console.warn(
-        "%c⚠️ Yi 未运行在 Tauri 环境中！",
-        "font-size:16px;font-weight:bold;color:red",
-        "\n请使用 `npm run tauri dev` 而非 `npm run dev`"
-      );
-    }
-  }, [tauriAvailable]);
-
   if (!ready) {
     return <div style={{ padding: 20 }}>Loading...</div>;
   }
@@ -100,12 +92,14 @@ function App() {
   if (!tauriAvailable) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", padding: 40, textAlign: "center", backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
-        <h2 style={{ color: "var(--danger)", marginBottom: 16 }}>运行环境不支持</h2>
+        <h2 style={{ color: "var(--danger)", marginBottom: 16 }}>{t("error.envNotSupported")}</h2>
         <p style={{ color: "var(--text-secondary)", marginBottom: 24 }}>
-          请使用 <code style={{ padding: "2px 8px", backgroundColor: "var(--bg-tertiary)", borderRadius: 4 }}>npm run tauri dev</code> 而非 <code style={{ padding: "2px 8px", backgroundColor: "var(--bg-tertiary)", borderRadius: 4 }}>npm run dev</code> 启动
+          <Trans i18nKey="error.useTauri">
+            Please use <code style={{ padding: "2px 8px", backgroundColor: "var(--bg-tertiary)", borderRadius: 4 }}>npm run tauri dev</code> instead of <code style={{ padding: "2px 8px", backgroundColor: "var(--bg-tertiary)", borderRadius: 4 }}>npm run dev</code>
+          </Trans>
         </p>
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-          Yi 需要 Tauri 运行时才能正常工作
+          {t("error.tauriRequired")}
         </p>
       </div>
     );

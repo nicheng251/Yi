@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, memo } from "react";
+import { useTranslation } from "react-i18next";
 
 export const CurrentTimer = memo(function CurrentTimer({ startTime }: { startTime: number }) {
+  const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(startTime);
   startRef.current = startTime;
@@ -16,7 +18,7 @@ export const CurrentTimer = memo(function CurrentTimer({ startTime }: { startTim
     return () => cancelAnimationFrame(frameId);
   }, [startTime]);
 
-  return <span>{elapsed} 分钟</span>;
+  return <span>{elapsed} {t("components.minute")}</span>;
 });
 
 interface IconButtonProps {

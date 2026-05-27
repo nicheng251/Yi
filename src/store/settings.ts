@@ -1,14 +1,17 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import i18n from "i18next";
 import { CommandResponse } from "../types";
 
 interface SettingsState {
   theme: "light" | "dark";
   autostart: boolean;
   lastBackupDate: string | null;
+  language: "zh" | "en";
   setTheme: (theme: "light" | "dark") => void;
   setAutostart: (enabled: boolean) => void;
   setLastBackupDate: (date: string) => void;
+  setLanguage: (lang: "zh" | "en") => void;
   loadSettings: () => Promise<void>;
 }
 
@@ -16,6 +19,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   theme: "light",
   autostart: false,
   lastBackupDate: null,
+  language: "zh",
 
   setTheme: async (theme) => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -45,20 +49,34 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     }
   },
 
+  setLanguage: async (lang) => {
+    i18n.changeLanguage(lang);
+    set({ language: lang });
+    try {
+      await invoke("set_setting", { key: "language", value: lang });
+    } catch (e) {
+      console.error("Failed to save language:", e);
+    }
+  },
+
   loadSettings: async () => {
     try {
-      const [themeRes, autostartRes, backupDateRes] = await Promise.all([
+      const [themeRes, autostartRes, backupDateRes, langRes] = await Promise.all([
         invoke("get_setting", { key: "theme" }),
         invoke("get_setting", { key: "autostart" }),
         invoke("get_setting", { key: "last_backup_date" }),
+        invoke("get_setting", { key: "language" }),
       ]);
 
       const rawTheme = (themeRes as CommandResponse<string>).data;
       const theme: "light" | "dark" = rawTheme === "dark" ? "dark" : "light";
       const autostart = (autostartRes as CommandResponse<string>).data === "true";
       const lastBackupDate = (backupDateRes as CommandResponse<string>).data || null;
+      const rawLang = (langRes as CommandResponse<string>).data;
+      const language: "zh" | "en" = rawLang === "en" ? "en" : "zh";
 
-      set({ theme, autostart, lastBackupDate });
+      i18n.changeLanguage(language);
+      set({ theme, autostart, lastBackupDate, language });
       document.documentElement.setAttribute("data-theme", theme);
     } catch (e) {
       console.error("Failed to load settings:", e);

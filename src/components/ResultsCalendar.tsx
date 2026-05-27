@@ -1,5 +1,6 @@
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, isSameDay } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import { zhCN, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import { DailyRecord } from "../types";
 import "../styles/components.css";
 
@@ -18,6 +19,18 @@ export function ResultsCalendar({
   onMonthChange,
   onDateClick,
 }: ResultsCalendarProps) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "en" ? enUS : zhCN;
+  const weekdays = [
+    t("components.weekdayMon"),
+    t("components.weekdayTue"),
+    t("components.weekdayWed"),
+    t("components.weekdayThu"),
+    t("components.weekdayFri"),
+    t("components.weekdaySat"),
+    t("components.weekdaySun"),
+  ];
+
   const days = eachDayOfInterval({
     start: startOfMonth(currentMonth),
     end: endOfMonth(currentMonth),
@@ -29,12 +42,12 @@ export function ResultsCalendar({
     <>
       <div className="calendar-nav">
         <button className="calendar-nav-btn" onClick={() => onMonthChange(subMonths(currentMonth, 1))}>←</button>
-        <span className="calendar-nav-title">{format(currentMonth, "yyyy 年 MM 月", { locale: zhCN })}</span>
+        <span className="calendar-nav-title">{format(currentMonth, t("dateFormats.yearMonth"), { locale })}</span>
         <button className="calendar-nav-btn" onClick={() => onMonthChange(addMonths(currentMonth, 1))}>→</button>
       </div>
 
       <div className="calendar-grid">
-        {["一", "二", "三", "四", "五", "六", "日"].map((day) => (
+        {weekdays.map((day) => (
           <div key={day} className="calendar-header">{day}</div>
         ))}
         {Array(firstDayOffset).fill(null).map((_, i) => (
