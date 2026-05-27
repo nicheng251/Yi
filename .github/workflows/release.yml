@@ -10,7 +10,7 @@ permissions:
 
 # === GitHub Secrets 配置说明 ===
 # 需要在仓库 Settings > Secrets and variables > Actions 中添加：
-#   TAURI_PRIVATE_KEY: src-tauri/keys 文件内容
+#   TAURI_SIGNING_PRIVATE_KEY: src-tauri/keys 文件内容
 #   TAURI_KEY_PASSWORD: 生成密钥时设置的密码
 # 如果未配置 Secrets，构建会产生未签名的安装包，更新功能不可用。
 env:
@@ -26,67 +26,131 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: "yi-app"
+          shared-key: "yi-app-windows"
 
       - name: Build
-        run: npm install && npm run tauri build
+        run: npm install && npm run tauri build -- --bundles msi
 
-      - name: Generate update manifest
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-x86_64
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/msi/*.sig
+
+  macos:
+    # macos-latest is Apple Silicon (aarch64)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "yi-app-macos"
+
+      - name: Build
+        run: npm install && npm run tauri build -- --bundles dmg
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-darwin-aarch64
+          path: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/dmg/*.sig
+
+  update-manifest:
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Generate update manifest and upload
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-
           VERSION="${GITHUB_REF_NAME#v}"
-          BUNDLE_DIR="src-tauri/target/release/bundle/msi"
+          RELEASE_BASE="https://github.com/nicheng251/Yi/releases/download/${GITHUB_REF_NAME}"
 
-          echo "Looking for MSI in: ${BUNDLE_DIR}"
-          ls -la "${BUNDLE_DIR}/" 2>/dev/null || true
+          # Start with empty platforms object
+          PLATFORMS='{}'
 
-          # Find MSI file (required)
-          MSI_FILE=$(ls "${BUNDLE_DIR}"/*.msi 2>/dev/null | head -1)
-          if [ -z "${MSI_FILE}" ]; then
-            echo "ERROR: No MSI file found in ${BUNDLE_DIR}"
-            exit 1
-          fi
-          MSI_NAME=$(basename "${MSI_FILE}")
-          echo "Found MSI: ${MSI_NAME}"
-
-          # Find signature file (optional - only present if signing keys are configured)
-          SIGNATURE=""
-          SIG_FILE=$(ls "${BUNDLE_DIR}"/*.sig 2>/dev/null | head -1 || true)
-          if [ -n "${SIG_FILE}" ]; then
-            SIGNATURE=$(cat "${SIG_FILE}")
-            echo "Found signature file"
-          else
-            echo "No .sig file found (signing keys not configured)"
+          # Windows
+          WIN_DIR="artifacts/release-windows-x86_64"
+          if [ -d "${WIN_DIR}" ]; then
+            WIN_INSTALLER=$(find "${WIN_DIR}" -name "*.msi" | head -1)
+            if [ -n "${WIN_INSTALLER}" ]; then
+              WIN_SIG=""
+              SIG_FILE=$(find "${WIN_DIR}" -name "*.sig" | head -1)
+              if [ -n "${SIG_FILE}" ]; then
+                WIN_SIG=$(tr -d '\n\r' < "${SIG_FILE}")
+              fi
+              PLATFORMS=$(echo "${PLATFORMS}" | jq \
+                --arg sig "${WIN_SIG}" \
+                --arg url "${RELEASE_BASE}/$(basename "${WIN_INSTALLER}")" \
+                '. + {"windows-x86_64": {"signature": $sig, "url": $url}}')
+            fi
           fi
 
-          RELEASE_URL="https://github.com/nicheng251/Yi/releases/download/${GITHUB_REF_NAME}/${MSI_NAME}"
+          # macOS (Apple Silicon)
+          MAC_DIR="artifacts/release-darwin-aarch64"
+          if [ -d "${MAC_DIR}" ]; then
+            MAC_INSTALLER=$(find "${MAC_DIR}" -name "*.dmg" | head -1)
+            if [ -n "${MAC_INSTALLER}" ]; then
+              MAC_SIG=""
+              SIG_FILE=$(find "${MAC_DIR}" -name "*.sig" | head -1)
+              if [ -n "${SIG_FILE}" ]; then
+                MAC_SIG=$(tr -d '\n\r' < "${SIG_FILE}")
+              fi
+              PLATFORMS=$(echo "${PLATFORMS}" | jq \
+                --arg sig "${MAC_SIG}" \
+                --arg url "${RELEASE_BASE}/$(basename "${MAC_INSTALLER}")" \
+                '. + {"darwin-aarch64": {"signature": $sig, "url": $url}}')
+            fi
+          fi
 
-          cat > latest.json << EOF
-          {
-            "version": "${VERSION}",
-            "notes": "Release ${GITHUB_REF_NAME}",
-            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "platforms": {
-              "windows-x86_64": {
-                "signature": "${SIGNATURE}",
-                "url": "${RELEASE_URL}"
-              }
-            }
-          }
-          EOF
+          # Build final manifest with jq
+          jq -n \
+            --arg version "${VERSION}" \
+            --arg notes "Release ${GITHUB_REF_NAME}" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --argjson platforms "${PLATFORMS}" \
+            '{version: $version, notes: $notes, pub_date: $pub_date, platforms: $platforms}' \
+            > latest.json
 
           echo "Generated update manifest:"
           cat latest.json
 
-      - name: Upload
+          # Collect release files with platform-prefixed names to avoid collisions
+          mkdir -p release_files
+          find artifacts/ -name "*.msi" -exec cp {} release_files/ \;
+          find artifacts/ -name "*.dmg" -exec cp {} release_files/ \;
+          # Copy .sig files with unique names to prevent overwrite
+          for dir in artifacts/release-*/; do
+            platform=$(basename "$dir" | sed 's/^release-//')
+            find "$dir" -name "*.sig" -exec cp {} "release_files/${platform}.sig" \;
+          done
+          cp latest.json release_files/
+
+          echo "Release files:"
+          ls -la release_files/
+
+      - name: Upload to Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/msi/*.sig
-            latest.json
+          files: release_files/*
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
