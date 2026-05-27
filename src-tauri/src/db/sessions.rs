@@ -113,7 +113,7 @@ impl Database {
     pub fn get_statistics(&self, start_date: i64, end_date: i64) -> Result<Vec<super::ProjectStat>> {
         let conn = self.conn.lock().expect("Database lock poisoned");
         let mut stmt = conn.prepare(
-            "SELECT p.id, p.name, COALESCE(SUM(s.minutes), 0)
+            "SELECT p.id, p.name, COALESCE(SUM(s.minutes), 0) AS total_minutes
              FROM projects p
              LEFT JOIN sessions s ON p.id = s.project_id
                  AND s.started_at >= ?1 AND s.started_at < ?2

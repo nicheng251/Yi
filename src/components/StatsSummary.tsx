@@ -17,7 +17,7 @@ export function StatsSummary({
   getViewPeriodText,
   getComparisonText,
 }: StatsSummaryProps) {
-  const displayMinutes = viewMode === "month" || viewMode === "week" ? monthTotalMinutes : totalMinutes;
+  const displayMinutes = viewMode === "month" ? monthTotalMinutes : totalMinutes;
 
   return (
     <div className="stats-summary">

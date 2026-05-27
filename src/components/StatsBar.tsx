@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
+import { startOfDay, startOfWeek, addDays } from "date-fns";
 import { CommandResponse, ProjectStat } from "../types";
 import { formatMinutes } from "../utils/format";
+import { useTimerStore } from "../store/timer";
 
 interface StatsBarProps {
   currentProjectMinutes?: number;
@@ -12,38 +13,36 @@ export function StatsBar({ currentProjectMinutes = 0 }: StatsBarProps) {
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [weekMinutes, setWeekMinutes] = useState(0);
   const [loading, setLoading] = useState(true);
+  const activeSession = useTimerStore((s) => s.activeSession);
 
   useEffect(() => {
     loadStats();
-  }, []);
+  }, [activeSession]);
 
   async function loadStats() {
     try {
       const now = new Date();
       const todayStart = Math.floor(startOfDay(now).getTime() / 1000);
-      const todayEnd = Math.floor(endOfDay(now).getTime() / 1000);
+      const todayEnd = Math.floor(addDays(startOfDay(now), 1).getTime() / 1000);
       const weekStart = Math.floor(startOfWeek(now, { weekStartsOn: 1 }).getTime() / 1000);
-      const weekEnd = Math.floor(endOfWeek(now, { weekStartsOn: 1 }).getTime() / 1000);
+      const weekEnd = Math.floor(addDays(startOfWeek(now, { weekStartsOn: 1 }), 7).getTime() / 1000);
 
-      const todayRes = (await invoke("get_statistics", {
-        startDate: todayStart,
-        endDate: todayEnd,
-      })) as CommandResponse<ProjectStat[]>;
+      const [todayRes, weekRes] = await Promise.all([
+        invoke("get_statistics", {
+          startDate: todayStart,
+          endDate: todayEnd,
+        }) as Promise<CommandResponse<ProjectStat[]>>,
+        invoke("get_statistics", {
+          startDate: weekStart,
+          endDate: weekEnd,
+        }) as Promise<CommandResponse<ProjectStat[]>>,
+      ]);
 
-      const weekRes = (await invoke("get_statistics", {
-        startDate: weekStart,
-        endDate: weekEnd,
-      })) as CommandResponse<ProjectStat[]>;
+      const totalToday = todayRes.data?.reduce((sum, p) => sum + p.total_minutes, 0) ?? 0;
+      const totalWeek = weekRes.data?.reduce((sum, p) => sum + p.total_minutes, 0) ?? 0;
 
-      if (todayRes.success && todayRes.data) {
-        const total = todayRes.data.reduce((sum, p) => sum + p.total_minutes, 0);
-        setTodayMinutes(total);
-      }
-
-      if (weekRes.success && weekRes.data) {
-        const total = weekRes.data.reduce((sum, p) => sum + p.total_minutes, 0);
-        setWeekMinutes(total);
-      }
+      setTodayMinutes(totalToday);
+      setWeekMinutes(totalWeek);
     } catch (e) {
       console.error("Failed to load stats:", e);
     } finally {

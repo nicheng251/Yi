@@ -5,14 +5,13 @@ import {
   startOfWeek,
   endOfWeek,
   startOfMonth,
-  endOfMonth,
   addMonths,
   subMonths,
   addWeeks,
   subWeeks,
   getDay,
   startOfDay,
-  endOfDay,
+  addDays,
   subDays,
 } from "date-fns";
 import { zhCN } from "date-fns/locale";
@@ -65,30 +64,29 @@ export default function Statistics() {
     switch (viewMode) {
       case "day":
         start = startOfDay(base);
-        end = endOfDay(base);
+        end = addDays(startOfDay(base), 1);        // 明天 00:00
         prevStart = subDays(start, 1);
         break;
       case "week":
         start = startOfWeek(base, { weekStartsOn: 1 });
-        end = endOfWeek(base, { weekStartsOn: 1 });
+        end = addDays(start, 7);                    // 下周一 00:00
         prevStart = subWeeks(start, 1);
         break;
       case "month":
         start = startOfMonth(base);
-        end = endOfMonth(base);
+        end = startOfMonth(addMonths(base, 1));     // 下月1号 00:00
         prevStart = subMonths(start, 1);
         break;
       case "year":
         start = new Date(base.getFullYear(), 0, 1);
-        end = new Date(base.getFullYear(), 11, 31);
+        end = new Date(base.getFullYear() + 1, 0, 1);  // 下年1月1号 00:00
         prevStart = new Date(base.getFullYear() - 1, 0, 1);
         break;
       default:
         return;
     }
 
-    const prevEnd = new Date(prevStart);
-    prevEnd.setTime(end.getTime());
+    const prevEnd = start;  // 上期区间 = [prevStart, start)
 
     try {
       const [currentRes, prevRes] = await Promise.all([
