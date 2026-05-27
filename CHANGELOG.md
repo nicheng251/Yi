@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.7] - 2026-05-27
+
+### Fixed
+- **Statistics all views show 0** - `get_statistics` SQL missing `AS total_minutes` alias caused `ORDER BY total_minutes DESC` to fail. Sessions already had correct minutes, but SQL error was silently caught and returned empty data.
+- **Stats week view showed month total** - StatsSummary conditional used `monthTotalMinutes` for week view instead of `totalMinutes`.
+- **StatsBar never refreshed after timer operations** - `useEffect` dependency was `[]` instead of `[activeSession]`.
+- **Statistics prev period spanned double width** - `prevEnd` incorrectly set to `end.getTime()` instead of `start`.
+- **Year view excluded Dec 31** - `end = new Date(y, 11, 31)` should be `new Date(y+1, 0, 1)` for correct half-open interval.
+
+### Changed
+- **Date boundary semantics** - All `endOfDay`/`endOfWeek`/`endOfMonth` replaced with next-period-start (`addDays`/`startOfMonth`/`new Date(y+1,0,1)`) for proper half-open `[start, end)` queries.
+
 ## [0.2.6] - 2025-05-26
 
 ### Added
