@@ -123,6 +123,12 @@ export default function Results() {
     }
   }
 
+  function resetEditorState() {
+    setEditingContent("");
+    setOriginalContent("");
+    setIsDirty(false);
+  }
+
   async function handleSearch() {
     if (!searchQuery.trim()) return;
     try {
@@ -138,6 +144,7 @@ export default function Results() {
 
   const handleDateClick = (day: Date) => {
     autoSave().then(() => {
+      resetEditorState();
       setCurrentDate(day);
       setViewMode('day');
     });
@@ -145,6 +152,7 @@ export default function Results() {
 
   const handleGoToToday = () => {
     autoSave().then(() => {
+      resetEditorState();
       setCurrentDate(new Date());
       setViewMode('day');
     });
@@ -152,7 +160,15 @@ export default function Results() {
 
   const handleSetViewMode = (mode: 'month' | 'day') => {
     autoSave().then(() => {
+      resetEditorState();
       setViewMode(mode);
+    });
+  };
+
+  const handleDateNavigate = (dir: "prev" | "next") => {
+    autoSave().then(() => {
+      resetEditorState();
+      setCurrentDate(d => dir === "prev" ? subDays(d, 1) : addDays(d, 1));
     });
   };
 
@@ -204,7 +220,7 @@ export default function Results() {
           currentDate={currentDate}
           editingContent={editingContent}
           onContentChange={setEditingContent}
-          onDateNavigate={(dir) => autoSave().then(() => setCurrentDate(d => dir === "prev" ? subDays(d, 1) : addDays(d, 1)))}
+          onDateNavigate={handleDateNavigate}
           onGoToToday={handleGoToToday}
           onCtrlS={() => autoSave()}
         />
