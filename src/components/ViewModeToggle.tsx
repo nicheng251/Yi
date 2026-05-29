@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { ViewMode } from "../types";
 import "../styles/components.css";
 
@@ -6,14 +7,16 @@ interface ViewModeToggleProps {
   onViewModeChange: (mode: ViewMode) => void;
 }
 
-const labels: Record<ViewMode, string> = {
-  day: "日",
-  week: "周",
-  month: "月",
-  year: "年",
-};
-
 export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeToggleProps) {
+  const { t } = useTranslation();
+
+  const labels: Record<ViewMode, string> = {
+    day: t("dateFormats.day", "日"),
+    week: t("dateFormats.week", "周"),
+    month: t("dateFormats.month", "月"),
+    year: t("dateFormats.yearLabel", "年"),
+  };
+
   return (
     <div className="toggle-group">
       {(["day", "week", "month", "year"] as ViewMode[]).map((mode) => (

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useTranslation } from "react-i18next";
 import { Project } from "../types";
 import "../styles/components.css";
 
@@ -12,6 +13,7 @@ interface SortableItemBaseProps {
 }
 
 export function SortableItemBase({ project, onDelete, children, actionButtons }: SortableItemBaseProps) {
+  const { t } = useTranslation();
   const [deleteState, setDeleteState] = useState<'idle' | 'confirm'>('idle');
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export function SortableItemBase({ project, onDelete, children, actionButtons }:
             className="btn btn-danger"
             style={deleteState === 'confirm' ? { fontWeight: 'bold' } : {}}
           >
-            {deleteState === 'confirm' ? '确认删除?' : '删除'}
+            {deleteState === 'confirm' ? t("common.confirmDelete") : t("common.delete")}
           </button>
         </div>
       </div>

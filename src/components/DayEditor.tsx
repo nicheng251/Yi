@@ -1,6 +1,7 @@
 import { format } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import { zhCN, enUS } from "date-fns/locale";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import "../styles/components.css";
 
 interface DayEditorProps {
@@ -20,6 +21,8 @@ export function DayEditor({
   onGoToToday,
   onCtrlS,
 }: DayEditorProps) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "en" ? enUS : zhCN;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -45,10 +48,10 @@ export function DayEditor({
       <div className="date-picker-nav">
         <button className="btn" onClick={() => onDateNavigate("prev")}>←</button>
         <span className="date-picker-title">
-          {format(currentDate, "yyyy 年 MM 月 dd 日 EEE", { locale: zhCN })}
+          {format(currentDate, t("dateFormats.fullDateWithWeekday"), { locale })}
         </span>
         <button className="btn" onClick={() => onDateNavigate("next")}>→</button>
-        <button className="btn" onClick={onGoToToday}>今天</button>
+        <button className="btn" onClick={onGoToToday}>{t("components.today")}</button>
       </div>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -56,7 +59,7 @@ export function DayEditor({
           ref={textareaRef}
           value={editingContent}
           onChange={(e) => onContentChange(e.target.value)}
-          placeholder="记录今天的成果..."
+          placeholder={t("components.recordPlaceholder")}
           className="textarea"
           style={{ flex: 1, minHeight: 300 }}
         />

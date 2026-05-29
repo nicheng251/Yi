@@ -1,4 +1,5 @@
 import { Component, ReactNode, ErrorInfo } from "react";
+import i18n from "i18next";
 
 interface Props {
   children: ReactNode;
@@ -29,12 +30,13 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) {
         return this.props.fallback;
       }
+      const t = i18n.t.bind(i18n);
       return (
         <div className="error-fallback">
-          <h2>出错了</h2>
-          <p>{this.state.error?.message || "发生了未知错误"}</p>
+          <h2>{t("error.title")}</h2>
+          <p>{this.state.error?.message || t("error.unknown")}</p>
           <button onClick={() => window.location.reload()} className="btn btn-primary">
-            重新加载页面
+            {t("error.reload")}
           </button>
         </div>
       );

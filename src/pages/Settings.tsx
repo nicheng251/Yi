@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { useSettingsStore } from "../store/settings";
 import { useTimerStore } from "../store/timer";
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
@@ -11,6 +12,7 @@ import { useAutoUpdate } from "../hooks/useAutoUpdate";
 import { updateGlobalShortcut } from "../hooks/useGlobalShortcut";
 
 function CaptureBox({ onCapture, onCancel }: { onCapture: (e: React.KeyboardEvent) => void; onCancel: () => void }) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => { ref.current?.focus(); }, []);
   return (
@@ -33,13 +35,14 @@ function CaptureBox({ onCapture, onCancel }: { onCapture: (e: React.KeyboardEven
         cursor: "default",
       }}
     >
-      按下快捷键...
+      {t("settings.captureKey")}
     </div>
   );
 }
 
 export default function Settings() {
-  const { theme, setTheme, autostart, setAutostart } = useSettingsStore();
+  const { t } = useTranslation();
+  const { theme, setTheme, autostart, setAutostart, language, setLanguage } = useSettingsStore();
   const { clearActiveSession } = useTimerStore();
   const { showToast } = useToast();
   const [version, setVersion] = useState<string>("");
@@ -91,9 +94,9 @@ export default function Settings() {
     try {
       await invoke("set_setting", { key: "global_shortcut", value: shortcutStr });
       await updateGlobalShortcut(shortcutStr);
-      showToast("全局快捷键已更新", "success");
+      showToast(t("settings.shortcutUpdated"), "success");
     } catch (err) {
-      showToast("快捷键设置失败: " + String(err), "error");
+      showToast(t("settings.shortcutFailed") + ": " + String(err), "error");
     }
   }
 
@@ -117,7 +120,7 @@ export default function Settings() {
       }
     } catch (e) {
       console.error("Failed to toggle autostart:", e);
-      showToast("自动启动设置失败", "error");
+      showToast(t("settings.autostartFailed"), "error");
     }
   }
 
@@ -125,11 +128,11 @@ export default function Settings() {
     try {
       const res = (await invoke("export_data")) as CommandResponse<string>;
       if (!res.success) {
-        showToast("导出失败: " + (res.error || "未知错误"), "error");
+        showToast(t("settings.exportFailed") + ": " + (res.error || t("common.unknownError")), "error");
         return;
       }
       if (!res.data) {
-        showToast("导出失败: 无数据", "error");
+        showToast(t("settings.exportNoData"), "error");
         return;
       }
       const filePath = await save({
@@ -140,15 +143,15 @@ export default function Settings() {
         try {
           const { writeTextFile } = await import("@tauri-apps/plugin-fs");
           await writeTextFile(filePath, res.data);
-          showToast("导出成功", "success");
+          showToast(t("settings.exportSuccess"), "success");
         } catch (writeErr) {
           console.error("Failed to write file:", writeErr);
-          showToast("写入文件失败: " + writeErr, "error");
+          showToast(t("settings.writeFailed") + ": " + writeErr, "error");
         }
       }
     } catch (e) {
       console.error("Failed to export:", e);
-      showToast("导出失败: " + e, "error");
+      showToast(t("settings.exportFailed") + ": " + e, "error");
     }
   }
 
@@ -165,47 +168,58 @@ export default function Settings() {
           const res = (await invoke("import_data", { jsonData: content })) as CommandResponse<null>;
           if (res.success) {
             clearActiveSession();
-            showToast("导入成功", "success");
+            showToast(t("settings.importSuccess"), "success");
           } else {
-            showToast("导入失败: " + (res.error || "未知错误"), "error");
+            showToast(t("settings.importFailed") + ": " + (res.error || t("common.unknownError")), "error");
           }
         } catch (readErr) {
           console.error("Failed to read file:", readErr);
-          showToast("读取文件失败: " + readErr, "error");
+          showToast(t("settings.readFailed") + ": " + readErr, "error");
         }
       }
     } catch (e) {
       console.error("Failed to import:", e);
-      showToast("导入失败: " + e, "error");
+      showToast(t("settings.importFailed") + ": " + e, "error");
     }
   }
 
   return (
     <div className="settings-section">
-      <h1 className="section-title">设置</h1>
+      <h1 className="section-title">{t("settings.title")}</h1>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <div>
-          <h2 className="settings-group-title">外观</h2>
+          <h2 className="settings-group-title">{t("settings.appearance")}</h2>
           <div className="flex-between stat-card">
-            <span>深色模式</span>
+            <span>{t("settings.darkMode")}</span>
             <Toggle checked={theme === "dark"} onChange={(checked) => setTheme(checked ? "dark" : "light")} />
+          </div>
+          <div className="flex-between stat-card">
+            <span>{t("settings.language")}</span>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as "zh" | "en")}
+              className="select"
+            >
+              <option value="zh">{t("settings.chinese")}</option>
+              <option value="en">{t("settings.english")}</option>
+            </select>
           </div>
         </div>
 
         <div>
-          <h2 className="settings-group-title">系统</h2>
+          <h2 className="settings-group-title">{t("settings.system")}</h2>
           <div className="flex-between stat-card">
-            <span>开机自启动</span>
+            <span>{t("settings.autostart")}</span>
             <Toggle checked={autostart} onChange={handleAutostartToggle} />
           </div>
         </div>
 
         <div>
-          <h2 className="settings-group-title">快捷键</h2>
+          <h2 className="settings-group-title">{t("settings.shortcut")}</h2>
           <div className="stat-card" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
-              <span style={{ flex: 1 }}>全局显示/隐藏</span>
+              <span style={{ flex: 1 }}>{t("settings.globalShowHide")}</span>
               {capturing ? (
                 <CaptureBox onCapture={handleCaptureKey} onCancel={() => setCapturing(false)} />
               ) : (
@@ -217,62 +231,62 @@ export default function Settings() {
                     fontSize: 13,
                     fontFamily: "monospace",
                   }}>{shortcut}</code>
-                  <button className="btn" onClick={startCapture}>修改</button>
+                  <button className="btn" onClick={startCapture}>{t("settings.change")}</button>
                 </>
               )}
             </div>
             <div className="text-secondary" style={{ fontSize: 12 }}>
-              点击修改后直接按下新快捷键即可
+              {t("settings.shortcutHint")}
             </div>
           </div>
         </div>
 
         <div>
-          <h2 className="settings-group-title">数据</h2>
+          <h2 className="settings-group-title">{t("settings.data")}</h2>
           <div className="list">
             <button onClick={handleExport} className="list-item">
-              导出数据 (JSON)
+              {t("settings.exportData")}
             </button>
             <button onClick={handleImport} className="list-item">
-              导入数据 (JSON)
+              {t("settings.importData")}
             </button>
           </div>
         </div>
 
         <div>
-          <h2 className="settings-group-title">关于</h2>
+          <h2 className="settings-group-title">{t("settings.about")}</h2>
           <div className="stat-card" style={{ flexDirection: "column", alignItems: "flex-start" }}>
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontWeight: 500 }}>Yi</span>
               <span style={{ color: "var(--text-secondary)", marginLeft: 8 }}>{version ? `v${version}` : ""}</span>
             </div>
             <div className="text-secondary" style={{ fontSize: 12, marginBottom: 12 }}>
-              专注生产力工具
+              {t("settings.appDescription")}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button
                 onClick={() => checkUpdate(
-                  () => showToast("已是最新版本", "success"),
-                  () => showToast("检查更新失败", "error")
+                  () => showToast(t("settings.upToDate"), "success"),
+                  () => showToast(t("settings.checkUpdateFailed"), "error")
                 )}
                 className="btn"
                 disabled={status === 'checking' || status === 'downloading'}
               >
-                {status === 'checking' ? '检查中...' : '检查更新'}
+                {status === 'checking' ? t("settings.checking") : t("settings.checkUpdate")}
               </button>
               {status === 'available' && (
                 <span style={{ color: 'var(--accent)' }}>
-                  发现新版本 {updateInfo?.version}
+                  {t("settings.newVersion")} {updateInfo?.version}
                 </span>
               )}
               {status === 'downloading' && (
                 <span style={{ color: 'var(--text-secondary)' }}>
-                  下载中... {progress}%
+                  {t("settings.downloading")} {progress}%
                 </span>
               )}
               {status === 'available' && (
                 <button onClick={downloadAndInstall} className="btn btn-primary">
-                  立即更新
+                  {t("settings.updateNow")}
                 </button>
               )}
             </div>

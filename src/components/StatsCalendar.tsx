@@ -1,6 +1,7 @@
 import { format } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import { zhCN, enUS } from "date-fns/locale";
 import { startOfWeek, endOfWeek } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { DailyFocus } from "../types";
 import "../styles/components.css";
 
@@ -36,20 +37,32 @@ export function StatsCalendar({
   onDayClick,
   getDayColor,
 }: StatsCalendarProps) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "en" ? enUS : zhCN;
+  const weekdays = [
+    t("components.weekdayMon"),
+    t("components.weekdayTue"),
+    t("components.weekdayWed"),
+    t("components.weekdayThu"),
+    t("components.weekdayFri"),
+    t("components.weekdaySat"),
+    t("components.weekdaySun"),
+  ];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div className="calendar-nav">
         <button className="calendar-nav-btn" onClick={onPrev}>‹</button>
         <span className="calendar-nav-title">
           {viewMode === "week"
-            ? `${format(startOfWeek(calendarDate, { weekStartsOn: 1 }), "M月d日")} - ${format(endOfWeek(calendarDate, { weekStartsOn: 1 }), "M月d日")}`
-            : format(calendarDate, "yyyy 年 MM 月", { locale: zhCN })}
+            ? `${format(startOfWeek(calendarDate, { weekStartsOn: 1 }), t("dateFormats.monthDay"), { locale })} - ${format(endOfWeek(calendarDate, { weekStartsOn: 1 }), t("dateFormats.monthDay"), { locale })}`
+            : format(calendarDate, t("dateFormats.yearMonth"), { locale })}
         </span>
         <button className="calendar-nav-btn" onClick={onNext}>›</button>
       </div>
 
       <div className="calendar-grid">
-        {["一", "二", "三", "四", "五", "六", "日"].map((day, i) => (
+        {weekdays.map((day, i) => (
           <div key={i} className="weekday-header">{day}</div>
         ))}
         {calendarGrid.map((item, index) => {

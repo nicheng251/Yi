@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { useTimerStore } from "../store/timer";
 import { CommandResponse, Project, Session } from "../types";
 import { SortableProjectItem } from "../components/SortableProjectItem";
@@ -20,6 +21,7 @@ import { useShortcut } from "../hooks/useShortcut";
 type SortOrder = "created" | "updated" | "name" | "minutes" | "last_active" | "custom";
 
 export default function Home() {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
   const [sortOrder, setSortOrder] = useState<SortOrder>("created");
   const pendingSortOrder = useRef<SortOrder | null>(null);
@@ -103,11 +105,11 @@ export default function Home() {
         loadProjects();
       } else {
         console.error("Create project failed:", res.error);
-        showToast("创建失败: " + (res.error || "未知错误"), "error");
+        showToast(t("home.createFailed") + ": " + (res.error || t("common.unknownError")), "error");
       }
     } catch (e) {
       console.error("Failed to create project:", e);
-      showToast("创建失败: " + e, "error");
+      showToast(t("home.createFailed") + ": " + e, "error");
     }
   }
 
@@ -122,7 +124,7 @@ export default function Home() {
       }
     } catch (e) {
       console.error("Failed to start timer:", e);
-      showToast("启动计时器失败", "error");
+      showToast(t("home.startTimerFailed"), "error");
     }
   }
 
@@ -134,7 +136,7 @@ export default function Home() {
       loadProjects();
     } catch (e) {
       console.error("Failed to stop timer:", e);
-      showToast("停止计时器失败", "error");
+      showToast(t("home.stopTimerFailed"), "error");
     }
   }
 
@@ -146,25 +148,25 @@ export default function Home() {
           clearActiveSession();
         }
         loadProjects();
-        showToast("项目已归档", "success");
+        showToast(t("home.archived"), "success");
       }
     } catch (e) {
       console.error("Failed to archive project:", e);
-      showToast("归档项目失败", "error");
+      showToast(t("home.archiveFailed"), "error");
     }
   }
 
   async function handleDelete(projectId: string) {
-    if (!confirm("确定要删除这个项目吗？此操作不可撤销。")) return;
+    if (!confirm(t("home.deleteConfirm"))) return;
     try {
       const res = (await invoke("delete_project", { id: projectId })) as CommandResponse<null>;
       if (res.success) {
         loadProjects();
-        showToast("项目已删除", "success");
+        showToast(t("home.deleted"), "success");
       }
     } catch (e) {
       console.error("Failed to delete project:", e);
-      showToast("删除项目失败", "error");
+      showToast(t("home.deleteFailed"), "error");
     }
   }
 
@@ -185,14 +187,14 @@ export default function Home() {
     },
     onError: () => {
       loadProjects();
-      showToast("排序保存失败", "error");
+      showToast(t("home.sortSaveFailed"), "error");
     },
   });
 
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="section-title" style={{ marginBottom: 0 }}>项目列表</h1>
+        <h1 className="section-title" style={{ marginBottom: 0 }}>{t("home.projectList")}</h1>
         <div className="flex-row">
           <StatsBar />
           <select
@@ -205,14 +207,14 @@ export default function Home() {
             }}
             className="select"
           >
-            <option value="created">创建时间</option>
-            <option value="updated">最近活动时间</option>
-            <option value="name">名称</option>
-            <option value="minutes">累计时长</option>
-            <option value="custom">自定义</option>
+            <option value="created">{t("home.sortCreated")}</option>
+            <option value="updated">{t("home.sortUpdated")}</option>
+            <option value="name">{t("home.sortName")}</option>
+            <option value="minutes">{t("home.sortMinutes")}</option>
+            <option value="custom">{t("home.sortCustom")}</option>
           </select>
           <button onClick={() => setShowNewProject(true)} className="btn-primary">
-            新建项目
+            {t("home.newProject")}
           </button>
         </div>
       </div>
@@ -223,20 +225,20 @@ export default function Home() {
             type="text"
             value={newProjectName}
             onChange={(e) => setNewProjectName(e.target.value)}
-            placeholder="输入项目名称"
+            placeholder={t("home.inputProjectName")}
             autoFocus
             onKeyDown={(e) => e.key === "Enter" && handleCreateProject()}
             className="input"
             style={{ flex: 1 }}
           />
           <button onClick={handleCreateProject} className="btn-primary">
-            创建
+            {t("common.create")}
           </button>
           <button className="btn" onClick={() => {
               setShowNewProject(false);
               setNewProjectName("");
             }}>
-            取消
+            {t("common.cancel")}
           </button>
         </div>
       )}
@@ -244,7 +246,7 @@ export default function Home() {
       <div className="page-content">
         {sortedProjects.length === 0 ? (
           <div className="empty-state">
-            暂无项目，点击"新建项目"开始
+            {t("home.emptyState")}
           </div>
         ) : (
           <DndContext

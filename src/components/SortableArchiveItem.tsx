@@ -1,5 +1,6 @@
 import { format } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import { zhCN, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import { Project } from "../types";
 import { formatMinutes } from "../utils/format";
 import { SortableItemBase } from "./SortableItemBase";
@@ -11,22 +12,25 @@ interface SortableArchiveItemProps {
 }
 
 export function SortableArchiveItem({ project, onUnarchive, onDelete }: SortableArchiveItemProps) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "en" ? enUS : zhCN;
+
   return (
     <SortableItemBase
       project={project}
       onDelete={onDelete}
       actionButtons={
         <button onClick={() => onUnarchive(project.id)} className="btn btn-primary">
-          重新启用
+          {t("components.enable")}
         </button>
       }
     >
       <div>
         <div className="text-primary">{project.name}</div>
         <div className="text-secondary">
-          归档于 {format(project.updated_at * 1000, "yyyy-MM-dd", { locale: zhCN })}
+          {t("components.archivedAt")} {format(project.updated_at * 1000, "yyyy-MM-dd", { locale })}
           {project.total_minutes !== undefined && project.total_minutes > 0 && (
-            <span style={{ marginLeft: 12 }}>累计 {formatMinutes(project.total_minutes)}</span>
+            <span style={{ marginLeft: 12 }}>{t("components.accumulated")} {formatMinutes(project.total_minutes)}</span>
           )}
         </div>
       </div>
