@@ -5991,7 +5991,7 @@ checksum = "b9cc00251562a284751c9973bace760d86c0276c471b4be569fe6b068ee97a56"
 
 [[package]]
 name = "yi"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "chrono",
  "dirs 5.0.1",

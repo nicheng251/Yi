@@ -73,7 +73,7 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let _tray = TrayIconBuilder::new()
         .icon(icon)
         .menu(&menu)
-        .tooltip("Yi - 专注生产力工具")
+        .tooltip("Yi - 意")
         .on_menu_event(|app, event| {
             match event.id.as_ref() {
                 "show" => {
